@@ -75,7 +75,7 @@ export default async function CertificatePage({ params }: { params: Promise<{ se
               <p className="mt-6 border-t-2 border-slate-300 pt-2 text-lg text-turq-900">{LESSON.teacher}</p>
             </div>
             <div className="relative mx-auto h-32 w-32">
-              <Image src="/images/champion-badge.png" alt="وسام" fill className="object-contain" />
+              <Image src="/images/champion-badge.png" alt="وسام" fill priority className="object-contain" />
             </div>
             <div className="text-center text-sm font-bold text-slate-600">
               <p>تاريخ الإصدار</p>

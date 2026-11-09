@@ -382,7 +382,7 @@ export function StationChampion({ ctx, title, subtitle }: StationProps) {
       <Card className="bg-gradient-to-l from-amber-50 via-white to-turq-50">
         <div className="flex flex-wrap items-center gap-4">
           <div className="relative h-28 w-28">
-            <Image src="/images/champion-badge.png" alt="وسام البطل" fill className={cx("object-contain", finished ? "animate-float" : "opacity-40 grayscale")} />
+            <Image src="/images/champion-badge.png" alt="وسام البطل" fill priority className={cx("object-contain", finished ? "animate-float" : "opacity-40 grayscale")} />
           </div>
           <div className="flex-1">
             <h3 className="text-2xl font-black text-turq-900">لعبة «بطل شروط الصلاة»</h3>

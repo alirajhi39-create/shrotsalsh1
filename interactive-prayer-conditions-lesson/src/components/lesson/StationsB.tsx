@@ -140,7 +140,7 @@ export function StationDetective({ ctx, title, subtitle }: StationProps) {
       <Card className="overflow-hidden bg-gradient-to-l from-orange-50 to-white">
         <div className="grid items-center gap-4 md:grid-cols-[180px_1fr]">
           <div className="relative mx-auto h-44 w-44 animate-float">
-            <Image src="/images/detective-kid.png" alt="المحقق الصغير" fill className="object-contain drop-shadow-xl" />
+            <Image src="/images/detective-kid.png" alt="المحقق الصغير" fill priority className="object-contain drop-shadow-xl" />
           </div>
           <div>
             <h3 className="text-2xl font-black text-turq-900">مهمتك أيها المحقق الصغير!</h3>
@@ -245,7 +245,7 @@ export function StationAwrah({ ctx, title, subtitle }: StationProps) {
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="text-center">
           <div className="relative mx-auto h-64 w-48">
-            <Image src="/images/man-prayer.png" alt="لباس الرجل المناسب للصلاة" fill className="object-contain" />
+            <Image src="/images/man-prayer.png" alt="لباس الرجل المناسب للصلاة" fill priority className="object-contain" />
           </div>
           <h4 className="mt-3 text-xl font-black text-turq-900">عورة الرجل في الصلاة</h4>
           <p className="mt-1 rounded-2xl bg-turq-50 p-3 text-lg font-bold text-turq-900">من السرة إلى الركبة</p>
@@ -253,7 +253,7 @@ export function StationAwrah({ ctx, title, subtitle }: StationProps) {
         </Card>
         <Card className="text-center">
           <div className="relative mx-auto h-64 w-48">
-            <Image src="/images/woman-prayer.png" alt="لباس المرأة المناسب للصلاة" fill className="object-contain" />
+            <Image src="/images/woman-prayer.png" alt="لباس المرأة المناسب للصلاة" fill priority className="object-contain" />
           </div>
           <h4 className="mt-3 text-xl font-black text-turq-900">عورة المرأة في الصلاة</h4>
           <p className="mt-1 rounded-2xl bg-turq-50 p-3 text-lg font-bold text-turq-900">تغطي كامل جسدها ما عدا وجهها وكفيها</p>

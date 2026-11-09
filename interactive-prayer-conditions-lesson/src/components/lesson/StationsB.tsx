@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
+import SafeImage from "./SafeImage";
+import SceneArt, { type SceneVariant } from "./SceneArt";
 import {
   AWRAH,
   AWRAH_RULE_CHOICES,
@@ -57,7 +58,7 @@ export function StationNajasa({ ctx, title, subtitle }: StationProps) {
           {NAJASA_PLACES.map((p, i) => (
             <div key={p.key} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
               <span className="grid h-10 w-10 place-items-center rounded-full bg-emerald-500 font-black text-white">{i + 1}</span>
-              <span className="text-3xl">{p.icon}</span>
+              <SceneArt variant={p.key as SceneVariant} className="h-12 w-16 shrink-0" />
               <span className="text-xl font-black text-turq-900">{p.label}</span>
             </div>
           ))}
@@ -139,9 +140,13 @@ export function StationDetective({ ctx, title, subtitle }: StationProps) {
     <StationShell emoji="🔍" title={title} subtitle={subtitle} strategy="المحقق الصغير" onSpeak={() => ctx.speak("أنت المحقق الصغير. اكتشف موضع المشكلة وطريقة معالجتها قبل الصلاة")}>
       <Card className="overflow-hidden bg-gradient-to-l from-orange-50 to-white">
         <div className="grid items-center gap-4 md:grid-cols-[180px_1fr]">
-          <div className="relative mx-auto h-44 w-44 animate-float">
-            <Image src="/images/detective-kid.png" alt="المحقق الصغير" fill priority className="object-contain drop-shadow-xl" />
-          </div>
+          <SafeImage
+            src="/images/detective-kid.webp"
+            alt="المحقق الصغير"
+            className="mx-auto h-44 w-44 animate-float"
+            imgClassName="drop-shadow-xl"
+            fallback="🕵️"
+          />
           <div>
             <h3 className="text-2xl font-black text-turq-900">مهمتك أيها المحقق الصغير!</h3>
             <p className="mt-1 text-lg text-slate-700">في كل قضية: حدد أين توجد النجاسة (البدن / الملابس / مكان الصلاة)، ثم اختر طريقة معالجتها الصحيحة. كل قضية تحلها تمنحك نجمة ⭐</p>
@@ -244,17 +249,13 @@ export function StationAwrah({ ctx, title, subtitle }: StationProps) {
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="text-center">
-          <div className="relative mx-auto h-64 w-48">
-            <Image src="/images/man-prayer.png" alt="لباس الرجل المناسب للصلاة" fill priority className="object-contain" />
-          </div>
+          <SafeImage src="/images/man-prayer.webp" alt="لباس الرجل المناسب للصلاة" className="mx-auto h-64 w-48" fallback="👳" />
           <h4 className="mt-3 text-xl font-black text-turq-900">عورة الرجل في الصلاة</h4>
           <p className="mt-1 rounded-2xl bg-turq-50 p-3 text-lg font-bold text-turq-900">من السرة إلى الركبة</p>
           <p className="mt-2 text-sm text-slate-500">ملابس ساترة من السرة إلى الركبة على الأقل.</p>
         </Card>
         <Card className="text-center">
-          <div className="relative mx-auto h-64 w-48">
-            <Image src="/images/woman-prayer.png" alt="لباس المرأة المناسب للصلاة" fill priority className="object-contain" />
-          </div>
+          <SafeImage src="/images/woman-prayer.webp" alt="لباس المرأة المناسب للصلاة" className="mx-auto h-64 w-48" fallback="🧕" />
           <h4 className="mt-3 text-xl font-black text-turq-900">عورة المرأة في الصلاة</h4>
           <p className="mt-1 rounded-2xl bg-turq-50 p-3 text-lg font-bold text-turq-900">تغطي كامل جسدها ما عدا وجهها وكفيها</p>
           <p className="mt-2 text-sm text-slate-500">لباس واسع يغطي الجسد كله ما عدا الوجه والكفين.</p>

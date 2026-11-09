@@ -1,4 +1,4 @@
-import Image from "next/image";
+import SafeImage from "@/components/lesson/SafeImage";
 import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -6,7 +6,7 @@ import { classrooms } from "@/db/schema";
 import { ensureSeeded } from "@/lib/seed";
 import { getStudentFromCookie } from "@/lib/student";
 import { CONDITIONS, LESSON, SLIDES } from "@/lib/content";
-import StudentEntry from "@/components/StudentEntry";
+import StudentApp from "@/components/StudentApp";
 
 export const dynamic = "force-dynamic";
 
@@ -48,15 +48,19 @@ export default async function HomePage() {
               </span>
             ))}
           </div>
-          <div className="relative mx-auto mt-6 h-64 w-64 animate-float lg:h-80 lg:w-80">
-            <Image src="/images/hero-boy.png" alt="طالب يستعد للصلاة" fill priority className="object-contain drop-shadow-2xl" />
-          </div>
+          <SafeImage
+            src="/images/hero-boy.webp"
+            alt="طالب يستعد للصلاة"
+            className="mx-auto mt-6 h-64 w-64 animate-float lg:h-80 lg:w-80"
+            imgClassName="drop-shadow-2xl"
+            fallback="🧒"
+          />
           <p className="text-sm text-slate-500">
             المعلم: {LESSON.teacher} — {LESSON.school}
           </p>
         </div>
         <div className="animate-fadeup lg:sticky lg:top-6">
-          <StudentEntry classrooms={rooms} current={current ? { id: current.id, name: current.name, classroom: current.classroomName } : null} />
+          <StudentApp classrooms={rooms} current={current ? { id: current.id, name: current.name, classroom: current.classroomName } : null} />
           <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-bold text-slate-600">
             <div className="rounded-2xl bg-white/80 p-3 shadow-sm">📱 يعمل على الجوال والأجهزة اللوحية</div>
             <div className="rounded-2xl bg-white/80 p-3 shadow-sm">🖥️ مناسب للسبورة الذكية</div>

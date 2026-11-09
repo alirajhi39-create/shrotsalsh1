@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
+import SafeImage from "./SafeImage";
+import SceneArt, { type SceneVariant } from "./SceneArt";
 import {
   AGE_QUESTION,
   BRAINSTORM_CHIPS,
@@ -33,6 +34,8 @@ export function EvidenceCard({ intro, text, source, quran }: { intro: string; te
 /* ------------------------------------------------------------------ */
 /*  المحطة 1: التهيئة                                                   */
 /* ------------------------------------------------------------------ */
+
+const SCENE_VARIANTS: SceneVariant[] = ["adhan", "stain", "short"];
 
 const INTRO_SCENES = [
   { emoji: "😴", text: "استيقظ سالم من النوم وسمع الأذان، فأراد أن يصلي فورًا." },
@@ -69,9 +72,13 @@ export function StationIntro({ ctx, title, subtitle }: StationProps) {
     <StationShell emoji="🤔" title={title} subtitle={subtitle} strategy="العصف الذهني وأسئلة التوقع" onSpeak={() => ctx.speak(`${title}. ${question}`)}>
       <Card className="overflow-hidden bg-gradient-to-l from-turq-50 to-white">
         <div className="grid items-center gap-6 md:grid-cols-[220px_1fr]">
-          <div className="relative mx-auto h-56 w-56 animate-float">
-            <Image src="/images/hero-boy.png" alt="طالب يستعد للصلاة" fill className="object-contain drop-shadow-xl" priority />
-          </div>
+          <SafeImage
+            src="/images/hero-boy.webp"
+            alt="طالب يستعد للصلاة"
+            className="mx-auto h-56 w-56 animate-float"
+            imgClassName="drop-shadow-xl"
+            fallback="🧒"
+          />
           <div>
             <p className="text-lg leading-relaxed text-slate-700">
               مرحبًا يا بطل! أنا <span className="font-black text-turq-700">سالم</span>، أستعد الآن للصلاة… لكن قبل أن أبدأ، هل تساعدني؟
@@ -84,7 +91,7 @@ export function StationIntro({ ctx, title, subtitle }: StationProps) {
       <div className="grid gap-4 md:grid-cols-3">
         {INTRO_SCENES.map((s, i) => (
           <Card key={i} className="text-center">
-            <div className="mb-2 text-6xl">{s.emoji}</div>
+            <SceneArt variant={SCENE_VARIANTS[i]} className="mx-auto mb-2 h-28 w-full" />
             <p className="font-semibold leading-relaxed text-slate-700">{s.text}</p>
             <p className="mt-2 text-sm font-bold text-brand-orange">ماذا تتوقع؟ هل صلاته صحيحة؟</p>
           </Card>
@@ -450,9 +457,7 @@ export function StationTahara({ ctx, title, subtitle, videoUrl }: StationProps &
             </>
           ) : (
             <>
-              <div className="mx-auto mb-3 grid h-40 w-full max-w-md place-items-center rounded-3xl bg-gradient-to-br from-sky-100 to-cyan-50 text-7xl">
-                🧼💧🤲
-              </div>
+              <SceneArt variant="wudu" className="mx-auto mb-3 h-40 w-full max-w-md" />
               <p className="text-lg font-semibold text-slate-700">لم يُضف المعلم رابط فيديو لهذه المحطة بعد (يمكن إضافته من لوحة المعلم).</p>
               <Btn className="mt-4" size="lg" onClick={() => setPhase("activity")}>
                 فكّر وأجب ←

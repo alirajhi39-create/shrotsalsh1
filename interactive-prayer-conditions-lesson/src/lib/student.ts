@@ -123,23 +123,16 @@ export type CurrentStudent = {
  */
 export async function getStudentFromCookie(): Promise<CurrentStudent | null> {
   const jar = await cookies();
-  const cookieToken = jar.get(STUDENT_COOKIE)?.value ?? null;
-
-  // لا تدع كوكي قديمًا أو جلسة ملغاة يحجبان الرمز الجديد المحفوظ في المتصفح.
-  if (cookieToken) {
-    const fromCookie = await getStudentByToken(cookieToken);
-    if (fromCookie) return fromCookie;
-  }
-
-  try {
-    const bearerToken = readBearerToken(await headers());
-    if (bearerToken && bearerToken !== cookieToken) {
-      return await getStudentByToken(bearerToken);
+  let token = jar.get(STUDENT_COOKIE)?.value ?? null;
+  if (!token) {
+    try {
+      token = readBearerToken(await headers());
+    } catch {
+      token = null;
     }
-  } catch {
-    /* لا توجد ترويسة في هذا السياق */
   }
-  return null;
+  if (!token) return null;
+  return getStudentByToken(token);
 }
 
 export async function getStudentByToken(token: string): Promise<CurrentStudent | null> {

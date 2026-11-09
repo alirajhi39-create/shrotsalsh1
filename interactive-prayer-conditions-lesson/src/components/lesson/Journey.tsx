@@ -6,7 +6,7 @@ import Link from "next/link";
 import type { ActivityResult } from "@/lib/content";
 import { ACTIVITIES, SLIDES } from "@/lib/content";
 import type { AttemptView, StudentState } from "@/lib/student";
-import { captureStudentTokenFromHash, clearStudentUrlToken, getStudentToken, setStudentToken, studentFetch } from "@/lib/client-auth";
+import { setStudentToken, studentFetch } from "@/lib/client-auth";
 import { Btn, Confetti, cx, newKey, useSounds, useSpeech } from "./ui";
 import { StationIntro, StationDiscover, StationThree, StationTahara } from "./StationsA";
 import { StationNajasa, StationDetective, StationAwrah, StationAyah } from "./StationsB";
@@ -45,7 +45,7 @@ function isStationDone(state: StudentState, key: string): boolean {
   return true;
 }
 
-export default function Journey() {
+export default function Journey({ onUnauthorized }: { onUnauthorized?: () => void } = {}) {
   const router = useRouter();
   const [state, setState] = useState<StudentState | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +59,13 @@ export default function Journey() {
   const sounds = useSounds(soundOn);
   const { speak } = useSpeech();
   const initialised = useRef(false);
+
+  /** عند فقدان الجلسة: نعود لشاشة الدخول في نفس الصفحة إن أمكن */
+  const handleUnauthorized = useCallback(() => {
+    setStudentToken(null);
+    if (onUnauthorized) onUnauthorized();
+    else router.replace("/");
+  }, [onUnauthorized, router]);
 
   const pushToast = useCallback((text: string, kind: Toast["kind"] = "ok") => {
     const id = Date.now() + Math.random();
@@ -75,15 +82,10 @@ export default function Journey() {
   /* تحميل الحالة */
   useEffect(() => {
     (async () => {
-      captureStudentTokenFromHash();
       try {
         const res = await studentFetch("/api/student/state", { cache: "no-store" });
         if (res.status === 401) {
-          if (!getStudentToken()) {
-            router.replace("/");
-          } else {
-            setError("تعذر التحقق من جلستك. اضغط «إعادة المحاولة»، وإن استمرت المشكلة عد لصفحة الدخول وأدخل اسمك ورمز الاستكمال.");
-          }
+          handleUnauthorized();
           return;
         }
         const data = (await res.json()) as { state: StudentState };
@@ -97,7 +99,7 @@ export default function Journey() {
         setError("تعذر تحميل بيانات الدرس. تحقق من الاتصال ثم أعد المحاولة.");
       }
     })();
-  }, [router]);
+  }, [router, handleUnauthorized]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("reduce-motion", reduceMotion);
@@ -113,9 +115,7 @@ export default function Journey() {
           body: JSON.stringify(body),
         });
         if (res.status === 401) {
-          setStudentToken(null);
-          clearStudentUrlToken();
-          router.replace("/");
+          handleUnauthorized();
           return null;
         }
         const data = (await res.json()) as Record<string, unknown> & { state?: StudentState; error?: string };
@@ -132,7 +132,7 @@ export default function Journey() {
         setBusy(false);
       }
     },
-    [router, pushToast],
+    [handleUnauthorized, pushToast],
   );
 
   const saveProgress = useCallback(
@@ -225,8 +225,8 @@ export default function Journey() {
   const exit = async () => {
     await studentFetch("/api/student/session", { method: "DELETE" });
     setStudentToken(null);
-    clearStudentUrlToken();
-    router.push("/");
+    if (onUnauthorized) onUnauthorized();
+    else router.push("/");
   };
 
   if (error) {
@@ -234,19 +234,9 @@ export default function Journey() {
       <main className="grid min-h-screen place-items-center p-6">
         <div className="rounded-3xl bg-white p-8 text-center shadow-xl">
           <p className="text-xl font-bold text-rose-700">{error}</p>
-          <div className="mt-4 flex flex-wrap justify-center gap-3">
-            <Btn onClick={() => location.reload()}>إعادة المحاولة</Btn>
-            <Btn
-              variant="secondary"
-              onClick={() => {
-                setStudentToken(null);
-                clearStudentUrlToken();
-                router.replace("/");
-              }}
-            >
-              العودة لصفحة الدخول
-            </Btn>
-          </div>
+          <Btn className="mt-4" onClick={() => location.reload()}>
+            إعادة المحاولة
+          </Btn>
         </div>
       </main>
     );

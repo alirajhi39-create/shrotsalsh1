@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
+import SafeImage from "./SafeImage";
 import Link from "next/link";
 import { CHAMPION_LEVELS, CLASSIFY_CARDS, CONDITIONS, SKILLS, type ActivityResult } from "@/lib/content";
 import type { AttemptView } from "@/lib/student";
@@ -381,9 +381,12 @@ export function StationChampion({ ctx, title, subtitle }: StationProps) {
     <StationShell emoji="🏆" title={title} subtitle={subtitle} strategy="التعلم باللعب" onSpeak={() => ctx.speak("لعبة بطل شروط الصلاة: اجتز ستة تحديات، كل تحد يمثل شرطًا من شروط الصلاة")}>
       <Card className="bg-gradient-to-l from-amber-50 via-white to-turq-50">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="relative h-28 w-28">
-            <Image src="/images/champion-badge.png" alt="وسام البطل" fill priority className={cx("object-contain", finished ? "animate-float" : "opacity-40 grayscale")} />
-          </div>
+          <SafeImage
+            src="/images/champion-badge.webp"
+            alt="وسام البطل"
+            className={cx("h-28 w-28", finished ? "animate-float" : "opacity-40 grayscale")}
+            fallback="🏆"
+          />
           <div className="flex-1">
             <h3 className="text-2xl font-black text-turq-900">لعبة «بطل شروط الصلاة»</h3>
             <p className="text-lg text-slate-700">اجتز ستة تحديات، كل تحدٍّ يمثل شرطًا. أجب بسرعة قبل انتهاء الوقت!</p>

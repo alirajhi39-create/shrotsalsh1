@@ -2,14 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { clearStudentUrlToken, getStudentToken, setStudentToken, studentFetch, studentLessonUrl } from "@/lib/client-auth";
+import { getStudentToken, setStudentToken, studentFetch, withTokens } from "@/lib/client-auth";
 import { Btn, cx } from "./lesson/ui";
 import IframeHint from "./IframeHint";
 
 type Classroom = { id: number; name: string };
 type Current = { id: number; name: string; classroom: string } | null;
 
-export default function StudentEntry({ classrooms, current: serverCurrent }: { classrooms: Classroom[]; current: Current }) {
+export default function StudentEntry({
+  classrooms,
+  current: serverCurrent,
+  onStart,
+}: {
+  classrooms: Classroom[];
+  current: Current;
+  /** عند توفيره يُعرض الدرس في نفس الصفحة دون أي انتقال (أكثر أمانًا داخل الإطارات) */
+  onStart?: () => void;
+}) {
   const router = useRouter();
   const [current, setCurrent] = useState<Current>(serverCurrent);
   const [name, setName] = useState("");
@@ -19,7 +28,6 @@ export default function StudentEntry({ classrooms, current: serverCurrent }: { c
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [welcome, setWelcome] = useState<{ name: string; resumeCode: string } | null>(null);
-  const [destination, setDestination] = useState("/lesson");
 
   // إن لم يتعرف الخادم على الكوكي، نتحقق من الرمز الاحتياطي المحفوظ في المتصفح
   useEffect(() => {
@@ -64,16 +72,12 @@ export default function StudentEntry({ classrooms, current: serverCurrent }: { c
         setError(data.error ?? "تعذر بدء الجلسة");
         return;
       }
-      let target = "/lesson";
-      if (data.token) {
-        const persisted = setStudentToken(data.token);
-        target = studentLessonUrl(data.token, persisted);
-        setDestination(target);
-      }
+      if (data.token) setStudentToken(data.token);
+      else setStudentToken(getStudentToken());
       if (data.isNew && data.student) {
         setWelcome({ name: data.student.name, resumeCode: data.student.resumeCode });
       } else {
-        router.push(target);
+        startLesson();
       }
     } catch {
       setError("تعذر الاتصال بالخادم");
@@ -82,10 +86,14 @@ export default function StudentEntry({ classrooms, current: serverCurrent }: { c
     }
   };
 
+  const startLesson = () => {
+    if (onStart) onStart();
+    else router.push(withTokens("/lesson"));
+  };
+
   const logout = async () => {
     await studentFetch("/api/student/session", { method: "DELETE" });
     setStudentToken(null);
-    clearStudentUrlToken();
     setCurrent(null);
     router.refresh();
   };
@@ -100,7 +108,7 @@ export default function StudentEntry({ classrooms, current: serverCurrent }: { c
           {welcome.resumeCode}
         </div>
         <p className="text-xs text-slate-500">يمكن لمعلمك أيضًا الاطلاع على الرمز إذا نسيته.</p>
-        <Btn size="lg" className="mt-5 w-full" onClick={() => router.push(destination)}>
+        <Btn size="lg" className="mt-5 w-full" onClick={startLesson}>
           ابدأ الدرس 🚀
         </Btn>
       </div>
@@ -116,7 +124,7 @@ export default function StudentEntry({ classrooms, current: serverCurrent }: { c
             مرحبًا بعودتك يا {current.name} ({current.classroom})
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Btn variant="success" onClick={() => router.push("/lesson")}>
+            <Btn variant="success" onClick={startLesson}>
               ▶️ متابعة تقدمي السابق
             </Btn>
             <Btn variant="ghost" size="sm" onClick={logout}>
@@ -160,6 +168,11 @@ export default function StudentEntry({ classrooms, current: serverCurrent }: { c
           {classrooms.length === 0 && <p className="text-sm text-rose-600">لا توجد فصول مفعلة؛ تواصل مع المعلم.</p>}
         </div>
         {needCode && (
+          <div className="animate-fadeup rounded-2xl border-2 border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-900">
+            هذا الاسم مسجّل مسبقًا. أدخل <b>رمز الاستكمال</b> الذي يظهر في لوحة المعلم بجانب اسمك، أو اطلب من معلمك تزويدك به. يمكنك أيضًا اختيار اسم جديد للمتابعة.
+          </div>
+        )}
+        {needCode && (
           <label className="block animate-fadeup">
             <span className="mb-1 block font-bold text-orange-700">رمز الاستكمال (6 رموز)</span>
             <input
@@ -172,9 +185,25 @@ export default function StudentEntry({ classrooms, current: serverCurrent }: { c
           </label>
         )}
         {error && <p className="rounded-2xl bg-rose-50 p-3 font-bold text-rose-700">{error}</p>}
-        <Btn type="submit" size="lg" className="w-full" disabled={busy || !classroomId}>
-          {busy ? "لحظة…" : needCode ? "استكمال الدرس 🔓" : "بدء الدرس 🚀"}
-        </Btn>
+        <div className="flex flex-wrap gap-2">
+          <Btn type="submit" size="lg" className="flex-1" disabled={busy || !classroomId}>
+            {busy ? "لحظة…" : needCode ? "استكمال الدرس 🔓" : "بدء الدرس 🚀"}
+          </Btn>
+          {needCode && (
+            <Btn
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setName("");
+                setCode("");
+                setNeedCode(false);
+                setError(null);
+              }}
+            >
+              ✏️ اسم جديد
+            </Btn>
+          )}
+        </div>
       </form>
     </div>
   );

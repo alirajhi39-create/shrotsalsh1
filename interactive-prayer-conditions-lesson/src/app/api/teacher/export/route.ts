@@ -3,14 +3,14 @@ import { and, asc, eq } from "drizzle-orm";
 import * as XLSX from "xlsx";
 import { db } from "@/db";
 import { certificates, classrooms, quizAttempts, studentProgress, students } from "@/db/schema";
-import { getTeacherSession } from "@/lib/auth";
+import { teacherSessionFromRequest } from "@/lib/auth";
 import { ensureSeeded } from "@/lib/seed";
 import { SLIDES } from "@/lib/content";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const session = await getTeacherSession();
+  const session = await teacherSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
   const lessonId = await ensureSeeded();
   const url = new URL(req.url);

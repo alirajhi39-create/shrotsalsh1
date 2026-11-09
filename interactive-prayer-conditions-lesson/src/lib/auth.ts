@@ -1,5 +1,5 @@
 import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 
 export const TEACHER_COOKIE = "shurut_teacher";
 export const STUDENT_COOKIE = "shurut_student";
@@ -14,12 +14,14 @@ export const TEACHER_SESSION_SECONDS = 12 * 3600;
 export function requestIsHttps(h: Headers): boolean {
   for (const key of ["origin", "referer"]) {
     const v = h.get(key);
-    if (v && v !== "null") return v.toLowerCase().startsWith("https://");
+    if (v && v !== "null" && /^https?:\/\//i.test(v)) return v.toLowerCase().startsWith("https://");
   }
   const xf = h.get("x-forwarded-proto");
-  if (xf) return xf.split(",")[0].trim().toLowerCase() === "https";
+  if (xf && xf.split(",")[0].trim().toLowerCase() === "https") return true;
+  // بروكسي المعاينة قد يمرّر http رغم أن الرابط الفعلي HTTPS،
+  // والأصل "null" يظهر في الإطارات المقيّدة (sandbox). نعتمد على اسم المضيف حينها.
   const host = (h.get("x-forwarded-host") ?? h.get("host") ?? "").toLowerCase();
-  return !/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(:\d+)?$/.test(host);
+  return host.length > 0 && !/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(:\d+)?$/.test(host);
 }
 
 export type SessionCookieOptions = {
@@ -118,28 +120,36 @@ export type TeacherSession = { teacherId: number; username: string };
 
 export async function getTeacherSession(): Promise<TeacherSession | null> {
   const jar = await cookies();
-  const cookieToken = jar.get(TEACHER_COOKIE)?.value ?? null;
-
-  // جرّب الكوكي أولًا، لكن لا تدع كوكي قديمًا/ملغى يحجب الرمز الجديد الصحيح.
-  const fromCookie = verifySignedToken<{ tid: number; u: string; exp: number }>(cookieToken);
-  if (fromCookie) return { teacherId: fromCookie.tid, username: fromCookie.u };
-
-  try {
-    const bearerToken = readBearerToken(await headers());
-    if (bearerToken && bearerToken !== cookieToken) {
-      const fromBearer = verifySignedToken<{ tid: number; u: string; exp: number }>(bearerToken);
-      if (fromBearer) return { teacherId: fromBearer.tid, username: fromBearer.u };
-    }
-  } catch {
-    /* لا توجد ترويسة في هذا السياق */
-  }
-  return null;
+  const data = verifySignedToken<{ tid: number; u: string; exp: number }>(jar.get(TEACHER_COOKIE)?.value);
+  return data ? { teacherId: data.tid, username: data.u } : null;
 }
 
 export class UnauthorizedError extends Error {
   constructor() {
     super("UNAUTHORIZED");
   }
+}
+
+export function verifyTeacherToken(token: string | null | undefined): TeacherSession | null {
+  const data = verifySignedToken<{ tid: number; u: string; exp: number }>(token);
+  return data ? { teacherId: data.tid, username: data.u } : null;
+}
+
+/**
+ * جلسة المعلم من طلب HTTP: ترويسة Authorization أولًا (لا تعتمد على الكوكيز)،
+ * ثم الكوكي الموقّع كبديل. تُستخدم في كل مسارات API المحمية.
+ */
+export async function teacherSessionFromRequest(req: Request): Promise<TeacherSession | null> {
+  const auth = req.headers.get("authorization");
+  if (auth && /^bearer\s+/i.test(auth)) {
+    const token = auth.replace(/^bearer\s+/i, "").trim();
+    const session = verifyTeacherToken(token);
+    if (session) return session;
+  }
+  const alt = req.headers.get("x-teacher-token");
+  const fromAlt = verifyTeacherToken(alt);
+  if (fromAlt) return fromAlt;
+  return getTeacherSession();
 }
 
 export async function requireTeacher(): Promise<TeacherSession> {

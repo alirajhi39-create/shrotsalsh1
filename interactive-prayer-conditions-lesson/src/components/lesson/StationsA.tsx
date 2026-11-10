@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import SafeImage from "./SafeImage";
-import { LessonScene } from "./MediaViews";
-import type { SceneVariant } from "./SceneArt";
+import SceneArt, { type SceneVariant } from "./SceneArt";
+import MediaImage from "./MediaImage";
+import { TeacherAudioPlayer } from "./media";
 import {
   AGE_QUESTION,
   BRAINSTORM_CHIPS,
@@ -70,12 +71,16 @@ export function StationIntro({ ctx, title, subtitle }: StationProps) {
   };
 
   return (
-    <StationShell slideKey="intro" emoji="🤔" title={title} subtitle={subtitle} strategy="العصف الذهني وأسئلة التوقع" onSpeak={() => ctx.speak(`${title}. ${question}`)}>
+    <StationShell emoji="🤔" title={title} subtitle={subtitle} strategy="العصف الذهني وأسئلة التوقع" onSpeak={() => ctx.speak(`${title}. ${question}`)}>
+      <Card className="bg-gradient-to-l from-sky-50 to-white">
+        <p className="text-sm font-bold text-turq-800">🎙️ استمع إلى شرح المعلم:</p>
+        <TeacherAudioPlayer slot="intro-voice" fallbackText={`${title}. ${question}`} speak={ctx.speak} className="mt-2" />
+      </Card>
       <Card className="overflow-hidden bg-gradient-to-l from-turq-50 to-white">
         <div className="grid items-center gap-6 md:grid-cols-[220px_1fr]">
-          <SafeImage
-            slot="intro_hero"
-            src="/images/hero-boy.webp"
+          <MediaImage
+            slot="hero-boy"
+            path="/images/hero-boy.webp"
             alt="طالب يستعد للصلاة"
             className="mx-auto h-56 w-56 animate-float"
             imgClassName="drop-shadow-xl"
@@ -93,7 +98,7 @@ export function StationIntro({ ctx, title, subtitle }: StationProps) {
       <div className="grid gap-4 md:grid-cols-3">
         {INTRO_SCENES.map((s, i) => (
           <Card key={i} className="text-center">
-            <LessonScene variant={SCENE_VARIANTS[i]} className="mx-auto mb-2 h-28 w-full" />
+            <SceneArt variant={SCENE_VARIANTS[i]} className="mx-auto mb-2 h-28 w-full" />
             <p className="font-semibold leading-relaxed text-slate-700">{s.text}</p>
             <p className="mt-2 text-sm font-bold text-brand-orange">ماذا تتوقع؟ هل صلاته صحيحة؟</p>
           </Card>
@@ -202,7 +207,7 @@ export function StationDiscover({ ctx, title, subtitle }: StationProps) {
   };
 
   return (
-    <StationShell slideKey="discover" emoji="🃏" title={title} subtitle={subtitle} strategy="التعلم بالاكتشاف" onSpeak={() => ctx.speak("اضغط على كل بطاقة لتكتشف شرطًا من شروط الصلاة الستة")}>
+    <StationShell emoji="🃏" title={title} subtitle={subtitle} strategy="التعلم بالاكتشاف" onSpeak={() => ctx.speak("اضغط على كل بطاقة لتكتشف شرطًا من شروط الصلاة الستة")}>
       <Card className="bg-gradient-to-l from-sky-50 to-white">
         <p className="text-lg font-semibold text-slate-700">
           أمامك ست بطاقات سرية 🔒 اضغط على كل بطاقة لتقلبها وتكتشف شرطًا من شروط الصلاة، واستمع إلى الشرح بالضغط على 🔊.
@@ -324,7 +329,7 @@ export function StationThree({ ctx, title, subtitle }: StationProps) {
   };
 
   return (
-    <StationShell slideKey="three" emoji="🧒" title={title} subtitle={subtitle} strategy="التعلم بالمواقف" onSpeak={() => ctx.speak("اقرأ كل موقف واختر الإجابة المناسبة")}>
+    <StationShell emoji="🧒" title={title} subtitle={subtitle} strategy="التعلم بالمواقف" onSpeak={() => ctx.speak("اقرأ كل موقف واختر الإجابة المناسبة")}>
       <div className="grid gap-4 md:grid-cols-3">
         {CONDITIONS.slice(0, 3).map((c) => (
           <Card key={c.key} className={cx("bg-gradient-to-br text-white", c.color)}>
@@ -429,8 +434,10 @@ export function StationTahara({ ctx, title, subtitle, videoUrl }: StationProps &
   };
 
   return (
-    <StationShell slideKey="tahara" emoji="💧" title={title} subtitle={subtitle} strategy="شاهد – فكر – أجب" onSpeak={() => ctx.speak(`الشرط الرابع: الطهارة. ${EVIDENCE.hadithTahara.text}`)}>
+    <StationShell emoji="💧" title={title} subtitle={subtitle} strategy="شاهد – فكر – أجب" onSpeak={() => ctx.speak(`الشرط الرابع: الطهارة. ${EVIDENCE.hadithTahara.text}`)}>
       <Card className="bg-gradient-to-l from-cyan-50 to-white">
+        <p className="mb-2 text-sm font-bold text-turq-800">🎙️ شرح المعلم الصوتي:</p>
+        <TeacherAudioPlayer slot="tahara-voice" fallbackText={`الشرط الرابع: الطهارة. ${EVIDENCE.hadithTahara.text}`} speak={ctx.speak} />
         <div className="flex flex-wrap items-center gap-4">
           <div className="grid h-24 w-24 place-items-center rounded-3xl bg-cyan-100 text-6xl">🚰</div>
           <div className="flex-1">
@@ -459,7 +466,7 @@ export function StationTahara({ ctx, title, subtitle, videoUrl }: StationProps &
             </>
           ) : (
             <>
-              <LessonScene variant="wudu" className="mx-auto mb-3 h-40 w-full max-w-md" />
+              <SceneArt variant="wudu" className="mx-auto mb-3 h-40 w-full max-w-md" />
               <p className="text-lg font-semibold text-slate-700">لم يُضف المعلم رابط فيديو لهذه المحطة بعد (يمكن إضافته من لوحة المعلم).</p>
               <Btn className="mt-4" size="lg" onClick={() => setPhase("activity")}>
                 فكّر وأجب ←

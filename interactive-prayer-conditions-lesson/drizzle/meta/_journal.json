@@ -12,22 +12,8 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1794282622220,
-      "tag": "0001_lesson_media",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1794282961796,
-      "tag": "0002_media_constraints",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1794298046928,
-      "tag": "0003_live_quiz",
+      "when": 1794282089312,
+      "tag": "0001_add_media_assets",
       "breakpoints": true
     }
   ]

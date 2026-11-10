@@ -16,9 +16,11 @@ import {
   students,
   teacherSettings,
   teachers,
+  mediaAssets,
 } from "@/db/schema";
 import { generateResumeCode, hashPassword, teacherSessionFromRequest, verifyPassword } from "@/lib/auth";
 import { ensureSeeded } from "@/lib/seed";
+import { AUDIO_SLOTS, IMAGE_SLOTS } from "@/lib/media-catalog";
 import { bestAttemptPercent, issueCertificate, logAudit, recomputeAttempt, recomputeProgress } from "@/lib/student";
 
 export const dynamic = "force-dynamic";
@@ -302,6 +304,54 @@ export async function POST(req: NextRequest) {
       await db.update(questions).set({ active: !q.active, updatedAt: new Date() }).where(eq(questions.id, id));
       await logAudit("teacher", tid, "question_toggled", "questions", id, { active: !q.active });
       return NextResponse.json({ ok: true, msg: q.active ? "تم تعطيل السؤال" : "تم تفعيل السؤال" });
+    }
+
+    /* ---------------- مكتبة الوسائط (صور وأصوات لكل الأجهزة) ---------------- */
+    if (action === "saveMedia") {
+      const slot = s(p, "slot");
+      const kind = s(p, "kind") === "audio" ? "audio" : "image";
+      const mime = s(p, "mime");
+      let dataUrl = s(p, "dataUrl");
+      const title = s(p, "title").slice(0, 120);
+      const altText = s(p, "altText").slice(0, 160);
+      const known = kind === "audio" ? AUDIO_SLOTS.find((x) => x.key === slot) : IMAGE_SLOTS.find((x) => x.key === slot);
+      if (!known) return NextResponse.json({ error: "موضع وسائط غير معروف" }, { status: 400 });
+      const maxBytes = kind === "audio" ? 3_500_000 : 1_200_000;
+      if (!dataUrl) return NextResponse.json({ error: "لم يُرفق ملف" }, { status: 400 });
+      // يقبل رابط بيانات كاملًا أو base64 خام
+      if (!/^data:[\w./+-]+;base64,/.test(dataUrl)) dataUrl = `data:${mime || "application/octet-stream"};base64,${dataUrl}`;
+      const bytes = Math.round(((dataUrl.length - dataUrl.indexOf(",") - 1) * 3) / 4);
+      if (bytes > maxBytes) return NextResponse.json({ error: `حجم الملف يتجاوز ${Math.round(maxBytes / 1024 / 1024)} ميغابايت` }, { status: 400 });
+      if (kind === "image" && !/^data:image\//.test(dataUrl)) return NextResponse.json({ error: "الملف ليس صورة" }, { status: 400 });
+      if (kind === "audio" && !/^data:audio\//.test(dataUrl)) return NextResponse.json({ error: "الملف ليس مقطعًا صوتيًا" }, { status: 400 });
+
+      await db
+        .insert(mediaAssets)
+        .values({
+          teacherId: tid,
+          lessonId,
+          kind,
+          slot,
+          title: title || known.label,
+          altText: altText || (known as { label: string }).label,
+          mime: mime || (kind === "audio" ? "audio/webm" : "image/webp"),
+          dataUrl,
+          bytes,
+          active: true,
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: [mediaAssets.lessonId, mediaAssets.slot, mediaAssets.active],
+          set: { title: title || (known as { label: string }).label, altText: altText || (known as { label: string }).label, mime: mime || (kind === "audio" ? "audio/webm" : "image/webp"), dataUrl, bytes, active: true, updatedAt: new Date() },
+        });
+      await logAudit("teacher", tid, kind === "audio" ? "audio_media_saved" : "image_media_saved", "media_assets", null, { slot, bytes });
+      return NextResponse.json({ ok: true, msg: `تم تحديث «${(known as { label: string }).label}» وسيظهر لجميع الطلاب فورًا` });
+    }
+    if (action === "resetMedia") {
+      const slot = s(p, "slot");
+      await db.delete(mediaAssets).where(and(eq(mediaAssets.lessonId, lessonId), eq(mediaAssets.slot, slot)));
+      await logAudit("teacher", tid, "media_reset", "media_assets", null, { slot });
+      return NextResponse.json({ ok: true, msg: "تمت استعادة الوسيلة الافتراضية" });
     }
 
     return NextResponse.json({ error: "إجراء غير معروف" }, { status: 400 });

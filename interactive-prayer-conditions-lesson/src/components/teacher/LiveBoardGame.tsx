@@ -4,6 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { teacherFetch } from "@/lib/client-auth";
 import { Btn, Confetti, cx, useSounds } from "@/components/lesson/ui";
 
+const ZONE_AR: Record<string, string> = {
+  islam: "الإسلام", tamyeez: "التمييز", aql: "العقل", tahara: "الطهارة",
+  najasa: "إزالة النجاسة", awrah: "ستر العورة", body: "البدن", clothes: "الملابس", place: "مكان الصلاة",
+};
+
 type Player = { id: string; name: string; score: number; answered: boolean; choice: string | null; correct: boolean };
 type RoomState = {
   ok?: boolean;
@@ -24,28 +29,36 @@ export default function LiveBoardGame() {
   const [code, setCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confetti, setConfetti] = useState(false);
+  const [includeBook, setIncludeBook] = useState(true);
   const sounds = useSounds(true);
   const prevAnswered = useRef(0);
   const prevIndex = useRef(-1);
 
+  const failures = useRef(0);
+
   const load = useCallback(async () => {
     if (!code) return;
-    const res = await teacherFetch(`/api/teacher/room?code=${encodeURIComponent(code)}`);
-    if (!res.ok) {
-      setRoom(null);
-      setCode(null);
-      return;
-    }
-    const d = (await res.json()) as RoomState;
-    setRoom(d);
-    if (d.index !== prevIndex.current) {
-      prevIndex.current = d.index;
-      sounds.click();
-    }
-    const answered = d.players.filter((p) => p.answered).length;
-    if (answered > prevAnswered.current) {
-      sounds.click();
-      prevAnswered.current = answered;
+    try {
+      const res = await teacherFetch(`/api/teacher/room?code=${encodeURIComponent(code)}`);
+      // أي خطأ مؤقت (انقطاع شبكة/إعادة تشغيل خادم) لا يُخرج المعلم من الغرفة
+      if (!res.ok) {
+        failures.current += 1;
+        return;
+      }
+      failures.current = 0;
+      const d = (await res.json()) as RoomState;
+      setRoom(d);
+      if (d.index !== prevIndex.current) {
+        prevIndex.current = d.index;
+        sounds.click();
+      }
+      const answered = d.players.filter((p) => p.answered).length;
+      if (answered > prevAnswered.current) {
+        prevAnswered.current = answered;
+        sounds.click();
+      }
+    } catch {
+      failures.current += 1;
     }
   }, [code, sounds]);
 
@@ -93,17 +106,21 @@ export default function LiveBoardGame() {
           <h2 className="text-xl font-black text-turq-900">🎮 مسابقة مباشرة يشارك فيها الطلاب من أجهزتهم</h2>
           <p className="mt-2 leading-relaxed text-slate-700">
             اضغط «بدء مسابقة» ليظهر رمز من 4 أرقام على السبورة. يفتح الطلاب رابط <b>/play</b> على هواتهم، يدخلون الرمز وأسماءهم،
-            ثم يجيب كل طالب بنفسه عن البطاقة المعروضة — وتظهر النتائج والترتيب على السبورة لحظيًا.
+            ثم يجيب كل طالب بنفسه عن السؤال المعروض — وتظهر النتائج والترتيب على السبورة لحظيًا.
           </p>
           <p className="mt-2 text-sm font-bold text-brand-orange">
             نصيحة: اعرض الرابط <span className="font-mono">/play</span> مع الرمز على السبورة قبل البدء.
           </p>
+          <label className="mt-3 flex items-center gap-2 rounded-2xl bg-white p-3 text-sm font-bold text-slate-700 shadow-sm">
+            <input type="checkbox" checked={includeBook} onChange={(e) => setIncludeBook(e.target.checked)} className="h-5 w-5" />
+            دمج أسئلة الكتاب والتقويم مع بطاقات التصنيف ({includeBook ? "بنك أسئلة موسّع" : "بطاقات التصنيف فقط"})
+          </label>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Btn size="lg" onClick={() => act("create", { mode: "conditions" })} disabled={busy}>
+          <Btn size="lg" onClick={() => act("create", { mode: "conditions", includeBook })} disabled={busy}>
             🗂️ بدء مسابقة «صنّف الشروط»
           </Btn>
-          <Btn size="lg" variant="warning" onClick={() => act("create", { mode: "najasa" })} disabled={busy}>
+          <Btn size="lg" variant="warning" onClick={() => act("create", { mode: "najasa", includeBook })} disabled={busy}>
             🧼 بدء مسابقة «مواضع النجاسة»
           </Btn>
         </div>
@@ -116,7 +133,10 @@ export default function LiveBoardGame() {
   }
 
   const answered = room.players.filter((p) => p.answered).length;
-  const zoneLabel = (id: string | null) => room.zones.find((z) => z.id === id)?.label ?? "—";
+  const zoneLabel = (id: string | null) => {
+    if (!id) return "—";
+    return room.zones.find((z) => z.id === id)?.label ?? ZONE_AR[id] ?? id;
+  };
 
   return (
     <div className="space-y-4">
@@ -155,7 +175,7 @@ export default function LiveBoardGame() {
       {room.card && (
         <div className="rounded-3xl bg-white p-8 text-center shadow-xl">
           <p className="text-sm font-bold text-slate-500">{room.reveal ? "الإجابة الصحيحة:" : "البطاقة المعروضة على أجهزة الطلاب:"}</p>
-          <p className="my-4 rounded-3xl bg-gradient-to-l from-turq-50 to-sky-50 p-6 text-3xl font-black text-turq-900 md:text-4xl">{room.card.label}</p>
+          <p className="my-4 rounded-3xl bg-gradient-to-l from-turq-50 to-sky-50 p-6 text-3xl font-black leading-relaxed text-turq-900 md:text-4xl">{room.card.label}</p>
           {room.reveal ? (
             <p className="text-2xl font-black text-emerald-700">✓ {zoneLabel(room.card.zone)}</p>
           ) : (
@@ -185,7 +205,7 @@ export default function LiveBoardGame() {
                   {p.answered ? (
                     room.reveal ? (
                       <span className={cx("rounded-full px-2 py-0.5 text-xs font-bold", p.correct ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-700")}>
-                        {p.choice} {p.correct ? "✓" : "✗"}
+                        {zoneLabel(p.choice)} {p.correct ? "✓" : "✗"}
                       </span>
                     ) : (
                       <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">أجاب ✓</span>

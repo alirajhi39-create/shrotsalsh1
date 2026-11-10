@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { teacherSessionFromRequest } from "@/lib/auth";
 import { generateRoomCode } from "@/lib/auth";
-import { POINTS_PER_CORRECT, rooms, Room, RoomMode, shuffledDeck, zonesFor } from "@/lib/rooms";
+import { POINTS_PER_CORRECT, rooms, type Room, type RoomMode, zoneEmoji } from "@/lib/rooms";
+import { buildLiveDeck } from "@/lib/live-quiz";
+import { ZONE_LABELS } from "@/lib/rooms";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +13,8 @@ const schema = z.object({
   code: z.string().trim().max(8).nullish(),
   mode: z.enum(["conditions", "najasa"]).nullish(),
   playerId: z.string().max(40).nullish(),
+  payload: z.record(z.string(), z.unknown()).nullish(),
+  includeBook: z.boolean().nullish(),
 });
 
 export async function POST(req: NextRequest) {
@@ -19,6 +23,8 @@ export async function POST(req: NextRequest) {
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "طلب غير صالح" }, { status: 400 });
   const { action } = parsed.data;
+  const body = (parsed.data ?? {}) as Record<string, unknown>;
+  const p = ((body.payload ?? body) ?? {}) as { includeBook?: boolean };
 
   if (action === "create") {
     // إنشاء غرفة جديدة لا يحتاج رمزًا
@@ -26,12 +32,13 @@ export async function POST(req: NextRequest) {
     let code = generateRoomCode();
     let guard = 0;
     while (rooms.has(code) && guard++ < 50) code = generateRoomCode();
+    const deck = await buildLiveDeck(mode, session.teacherId, { includeBook: p?.includeBook !== false });
     const room: Room = {
       code,
       teacherId: session.teacherId,
       mode,
       index: 0,
-      order: shuffledDeck(mode),
+      order: deck as unknown as Room["order"],
       players: new Map(),
       reveal: false,
       createdAt: Date.now(),
@@ -39,7 +46,8 @@ export async function POST(req: NextRequest) {
       finished: false,
     };
     rooms.set(code, room);
-    return NextResponse.json({ ok: true, code, zones: zonesFor(mode), total: room.order.length });
+    const zones = (mode === "conditions" ? ["islam", "tamyeez", "aql", "tahara", "najasa", "awrah"] : ["body", "clothes", "place"]).map((id) => ({ id, label: ZONE_LABELS[id] ?? id, emoji: zoneEmoji(id) }));
+    return NextResponse.json({ ok: true, code, zones, total: room.order.length, deck: room.order.map((q) => ({ kind: q.kind, label: q.label })) });
   }
 
   const code = (parsed.data.code ?? "").toString();
@@ -51,7 +59,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
   if (action === "reset") {
-    room.order = shuffledDeck(room.mode);
+    room.order = await buildLiveDeck(room.mode, room.teacherId) as unknown as Room["order"];
     room.index = 0;
     room.reveal = false;
     room.finished = false;
@@ -110,8 +118,25 @@ export async function GET(req: NextRequest) {
     mode: room.mode,
     index: room.index,
     total: room.order.length,
-    card: card ? { id: card.id, label: card.label, zone: room.reveal ? card.zone : null } : null,
-    zones: zonesFor(room.mode),
+    card: card
+      ? {
+          id: card.id,
+          label: card.label,
+          zone: room.reveal ? card.zone : null,
+          correctLabel: room.reveal ? card.zone : null,
+          kind: card.kind ?? "classify",
+        }
+      : null,
+    zones: (() => {
+      const ids = card
+        ? card.kind === "mcq"
+          ? (card as { options?: { id: string; label: string }[] }).options?.map((o) => o.id) ?? []
+          : room.mode === "conditions"
+            ? ["islam", "tamyeez", "aql", "tahara", "najasa", "awrah"]
+            : ["body", "clothes", "place"]
+        : [];
+      return ids.map((id) => ({ id, label: (card.kind === "mcq" ? (card as { options?: { id: string; label: string }[] }).options?.find((o) => o.id === id)?.label : ZONE_LABELS[id]) ?? ZONE_LABELS[id] ?? id, emoji: zoneEmoji(id) }));
+    })(),
     players,
     reveal: room.reveal,
     finished: room.finished,

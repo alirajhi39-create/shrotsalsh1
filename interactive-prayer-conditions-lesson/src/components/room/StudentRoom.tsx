@@ -195,7 +195,23 @@ export default function StudentRoom() {
       </header>
 
       <div className="mx-auto max-w-md space-y-4">
-        {error && <div className="rounded-2xl bg-rose-50 p-3 text-center font-bold text-rose-700">{error}</div>}
+        {error && (
+          <div className="space-y-2">
+            <div className="rounded-2xl bg-rose-50 p-3 text-center font-bold text-rose-700">{error}</div>
+            <Btn
+              variant="secondary"
+              className="w-full"
+              onClick={() => {
+                setJoined(false);
+                setPlayerId(null);
+                setState(null);
+                setError(null);
+              }}
+            >
+              🔁 الانضمام من جديد
+            </Btn>
+          </div>
+        )}
 
         {state.finished ? (
           <div className="rounded-3xl bg-white p-6 text-center shadow-xl">

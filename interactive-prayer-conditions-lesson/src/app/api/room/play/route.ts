@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { hashToken } from "@/lib/auth";
-import { rooms } from "@/lib/rooms";
+import { rooms, ZONE_LABELS, zoneEmoji } from "@/lib/rooms";
 
 export const dynamic = "force-dynamic";
 
@@ -72,21 +72,27 @@ export async function GET(req: NextRequest) {
     total: room.order.length,
     finished: room.finished,
     reveal: room.reveal,
-    question: card ? { label: card.label } : null,
-    zones: room.mode === "conditions"
-      ? [
-          { id: "islam", label: "الإسلام", emoji: "🕌" },
-          { id: "tamyeez", label: "التمييز", emoji: "🧒" },
-          { id: "aql", label: "العقل", emoji: "🧠" },
-          { id: "tahara", label: "الطهارة", emoji: "💧" },
-          { id: "najasa", label: "إزالة النجاسة", emoji: "🧼" },
-          { id: "awrah", label: "ستر العورة", emoji: "👕" },
-        ]
-      : [
-          { id: "body", label: "البدن", emoji: "🙋" },
-          { id: "clothes", label: "الملابس", emoji: "👕" },
-          { id: "place", label: "مكان الصلاة", emoji: "🧎" },
-        ],
+    question: card
+      ? {
+          label: card.label,
+          kind: card.kind ?? "classify",
+          options:
+            card.kind === "mcq"
+              ? (card.options ?? []).map((o) => ({ id: o.id, label: o.label, emoji: o.emoji }))
+              : (room.mode === "conditions"
+                  ? ["islam", "tamyeez", "aql", "tahara", "najasa", "awrah"]
+                  : ["body", "clothes", "place"]
+                ).map((id) => ({ id, label: ZONE_LABELS[id] ?? id, emoji: zoneEmoji(id) })),
+        }
+      : null,
+    zones: card
+      ? card.kind === "mcq"
+        ? (card.options ?? []).map((o) => ({ id: o.id, label: o.label, emoji: o.emoji ?? "🔤" }))
+        : (room.mode === "conditions"
+            ? ["islam", "tamyeez", "aql", "tahara", "najasa", "awrah"]
+            : ["body", "clothes", "place"]
+          ).map((id) => ({ id, label: ZONE_LABELS[id] ?? id, emoji: zoneEmoji(id) }))
+      : [],
     me: me ? { name: me.name, score: me.score, answered: me.answered, choice: me.choice, correct: room.reveal && me.choice === card?.zone } : null,
     answeredCount,
     totalPlayers: room.players.size,

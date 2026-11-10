@@ -8,8 +8,6 @@ import {
   activities,
   questions,
   teacherSettings,
-  audioRecordings,
-  lessonMedia,
 } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { hashPassword } from "./auth";
@@ -396,32 +394,6 @@ async function runSeed(): Promise<number> {
       .insert(teacherSettings)
       .values({ teacherId: teacher.id, lessonId: lesson.id, passPercent: 80, maxAttempts: 2 })
       .onConflictDoNothing();
-  }
-
-  // ترحيل غير هدّام لمقاطع المعلم القديمة إلى مكتبة وسائط الدرس المنشورة.
-  // تبقى النسخة الأصلية في audio_recordings، وتسجيلات الطلاب لا تُنشر أبدًا.
-  const legacyClips = await db
-    .select()
-    .from(audioRecordings)
-    .where(and(eq(audioRecordings.lessonId, lesson.id), eq(audioRecordings.kind, "teacher")));
-  for (const clip of legacyClips) {
-    await db
-      .insert(lessonMedia)
-      .values({
-        lessonId: lesson.id,
-        teacherId: teacher.id,
-        kind: "audio",
-        slideKey: SLIDES.some((s) => s.key === clip.slideKey) ? clip.slideKey : "intro",
-        title: clip.title || "شرح المعلم",
-        source: "uploaded",
-        mimeType: clip.mimeType,
-        dataBase64: clip.dataBase64,
-        sizeBytes: Buffer.byteLength(clip.dataBase64, "base64"),
-        active: true,
-        legacyAudioId: clip.id,
-        createdAt: clip.createdAt,
-      })
-      .onConflictDoNothing({ target: lessonMedia.legacyAudioId });
   }
 
   return lesson.id;

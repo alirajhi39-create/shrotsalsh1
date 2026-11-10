@@ -5,7 +5,6 @@ import { audioRecordings, auditLogs, classrooms, lessonSlides, questions, teache
 import { teacherSessionFromRequest } from "@/lib/auth";
 import { ensureSeeded } from "@/lib/seed";
 import { loadTeacherData } from "@/lib/teacher-data";
-import { listTeacherMedia } from "@/lib/media-server";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +64,6 @@ export async function GET(req: NextRequest) {
     })),
     slides: slideRows.map((s) => ({ id: s.id, key: s.key, title: s.title, subtitle: s.subtitle, videoUrl: s.videoUrl })),
     teacherAudios: audioRows.map((a) => ({ ...a, createdAt: a.createdAt.toISOString() })),
-    media: await listTeacherMedia(base.lessonId),
     recentLogs: logs.map((l) => ({ id: l.id, actorId: l.actorId, action: l.action, createdAt: l.createdAt.toISOString() })),
   });
 }

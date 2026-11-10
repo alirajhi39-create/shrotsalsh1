@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794233539772,
+      "tag": "0000_init_shurut_alsalah",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794282089312,
+      "tag": "0001_add_media_assets",
+      "breakpoints": true
+    }
+  ]
+}

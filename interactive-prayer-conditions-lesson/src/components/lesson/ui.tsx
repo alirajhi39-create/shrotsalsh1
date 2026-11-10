@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { LessonAudioList } from "./LessonAudio";
 
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
 
@@ -156,6 +157,7 @@ export function StationShell({
   title,
   subtitle,
   strategy,
+  slideKey,
   children,
   onSpeak,
 }: {
@@ -163,6 +165,7 @@ export function StationShell({
   title: string;
   subtitle?: string;
   strategy?: string;
+  slideKey: string;
   children: ReactNode;
   onSpeak?: () => void;
 }) {
@@ -192,6 +195,7 @@ export function StationShell({
           </button>
         )}
       </header>
+      <LessonAudioList slideKey={slideKey} />
       <div className="space-y-6">{children}</div>
     </section>
   );

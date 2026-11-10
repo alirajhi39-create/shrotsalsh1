@@ -6,9 +6,10 @@ import { authFetch, getToken, setToken, teacherFetch } from "@/lib/client-auth";
 import { ACTIVITIES, SKILLS, SLIDES } from "@/lib/content";
 import { KIND_LABELS, humanizeActivityAnswer, humanizeResponse } from "@/lib/grading";
 import { BarChart, ColumnChart, Donut, StatCard } from "./charts";
-import BoardGame from "./BoardGame";
-import LiveBoardGame from "./LiveBoardGame";
+
 import MediaManager from "./MediaManager";
+import LiveQuizBoard from "./LiveQuizBoard";
+import type { ManagedMedia } from "@/lib/media";
 import IframeHint from "@/components/IframeHint";
 import { Btn, cx } from "@/components/lesson/ui";
 
@@ -67,6 +68,7 @@ type Data = {
   questions: QuestionRow[];
   slides: SlideRow[];
   teacherAudios: AudioRow[];
+  media: ManagedMedia[];
   recentLogs: { id: number; actorId: number | null; action: string; createdAt: string }[];
 };
 
@@ -116,7 +118,7 @@ type Detail = {
   questions: { id: number; kind: string; prompt: string; options: Record<string, unknown>; answer: Record<string, unknown> }[];
 };
 
-type Tab = "overview" | "students" | "questions" | "board" | "live" | "settings";
+type Tab = "overview" | "students" | "questions" | "media" | "board" | "settings";
 
 /* ------------------------------------------------------------------ */
 /*  أدوات                                                              */
@@ -440,6 +442,20 @@ export default function TeacherApp({ initialTab = "overview", initialStudentId }
     [flash, loadData],
   );
 
+  const downloadPdf = async (studentId?: number) => {
+    setBusy(true);
+    try {
+      const query = studentId ? `studentId=${studentId}` : filter ? `classroomId=${filter}` : "";
+      const res = await authFetch("teacher", `/api/teacher/reports/pdf${query ? `?${query}` : ""}`);
+      if (!res.ok) { const d = await res.json().catch(() => ({})); return flash(d.error ?? "تعذر إنشاء تقرير PDF", true); }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = studentId ? `تقرير-الطالب-${studentId}.pdf` : `تقرير-${filter ? rooms.find(r => r.id === filter)?.name ?? "الفصل" : "جميع-الفصول"}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+      flash("تم تنزيل تقرير PDF");
+    } catch { flash("تعذر تنزيل التقرير", true); } finally { setBusy(false); }
+  };
+
   const download = async (format: "csv" | "xlsx") => {
     const url = `/api/teacher/export?format=${format}${filter ? `&classroomId=${filter}` : ""}`;
     const res = await authFetch("teacher", url);
@@ -499,7 +515,7 @@ export default function TeacherApp({ initialTab = "overview", initialStudentId }
     { key: "overview", label: "النظرة العامة", icon: "📊" },
     { key: "students", label: "الطلاب والفصول", icon: "🧑‍🎓" },
     { key: "questions", label: "الأسئلة والأنشطة", icon: "📝" },
-    { key: "live", label: "مسابقة مباشرة", icon: "🎮" },
+    { key: "media", label: "الصور والصوتيات", icon: "🖼️" },
     { key: "board", label: "السبورة الذكية", icon: "🖥️" },
     { key: "settings", label: "الإعدادات", icon: "⚙️" },
   ];
@@ -537,12 +553,7 @@ export default function TeacherApp({ initialTab = "overview", initialStudentId }
           <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div><h1 className="text-3xl font-black text-turq-900">النظرة العامة</h1><p className="text-slate-500">بيانات حقيقية من قاعدة البيانات — اضغط «تحديث» لمتابعة التقدم المباشر.</p></div>
-              <div className="flex flex-wrap gap-2">
-                <Btn variant="success" onClick={() => download("xlsx")}>⬇️ Excel</Btn>
-                <Btn variant="primary" onClick={() => download("csv")}>⬇️ CSV</Btn>
-                <Btn variant="warning" onClick={() => window.open(`/api/teacher/report?kind=students`, "_blank")}>📄 تقرير PDF للطلاب</Btn>
-                <Btn variant="secondary" onClick={() => window.open(`/api/teacher/report`, "_blank")}>📊 تقرير عام PDF</Btn>
-              </div>
+              <div className="flex flex-wrap items-center gap-2"><select value={filter} onChange={e=>setFilter(Number(e.target.value))} className="rounded-xl border-2 border-slate-200 bg-white px-3 py-2 text-sm font-bold" aria-label="الفصل للتقرير"><option value={0}>جميع الفصول</option>{rooms.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select><Btn variant="warning" onClick={() => void downloadPdf()} disabled={busy}>📄 تقرير PDF</Btn><Btn variant="success" onClick={() => download("xlsx")}>⬇️ Excel</Btn><Btn variant="primary" onClick={() => download("csv")}>⬇️ CSV</Btn></div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               <StatCard title="إجمالي الطلاب" value={students.length} hint={`${rooms.length} فصول`} icon="🧑‍🎓" />
@@ -583,7 +594,7 @@ export default function TeacherApp({ initialTab = "overview", initialStudentId }
         {/* ---------------- الطلاب ---------------- */}
         {tab === "students" && !selected && (
           <div className="space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-3xl font-black text-turq-900">الطلاب والفصول</h1><div className="flex flex-wrap gap-2"><Btn variant="success" size="sm" onClick={() => download("xlsx")}>⬇️ Excel</Btn><Btn variant="secondary" size="sm" onClick={() => download("csv")}>⬇️ CSV</Btn><Btn variant="warning" size="sm" onClick={() => window.open(`/api/teacher/report?kind=students${filter ? `&classroomId=${filter}` : ""}`, "_blank")}>📄 تقرير PDF</Btn></div></div>
+            <div className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-3xl font-black text-turq-900">الطلاب والفصول</h1><div className="flex gap-2"><Btn variant="success" size="sm" onClick={() => download("xlsx")}>⬇️ Excel</Btn><Btn variant="secondary" size="sm" onClick={() => download("csv")}>⬇️ CSV</Btn></div></div>
             <div className="grid gap-4 lg:grid-cols-2">
               <section className={card}>
                 <h2 className="mb-3 text-lg font-black text-turq-900">الفصول</h2>
@@ -610,7 +621,7 @@ export default function TeacherApp({ initialTab = "overview", initialStudentId }
         {/* ---------------- تفاصيل الطالب ---------------- */}
         {tab === "students" && selected && (
           <div className="space-y-6">
-            <div className="flex flex-wrap items-center gap-3"><button onClick={() => { setSelected(null); setDetail(null); }} className="rounded-xl bg-white px-3 py-2 text-sm font-bold text-turq-700 shadow">→ قائمة الطلاب</button><h1 className="text-3xl font-black text-turq-900">{detail?.student.name ?? "…"}</h1>{detail && <span className="rounded-full bg-turq-100 px-3 py-1 font-bold text-turq-800">{detail.student.classroom}</span>}</div>
+            <div className="flex flex-wrap items-center gap-3"><button onClick={() => { setSelected(null); setDetail(null); }} className="rounded-xl bg-white px-3 py-2 text-sm font-bold text-turq-700 shadow">→ قائمة الطلاب</button><h1 className="text-3xl font-black text-turq-900">{detail?.student.name ?? "…"}</h1>{detail && <span className="rounded-full bg-turq-100 px-3 py-1 font-bold text-turq-800">{detail.student.classroom}</span>}<Btn variant="warning" size="sm" className="ms-auto" onClick={() => selected && void downloadPdf(selected)} disabled={busy || !detail}>📄 تقرير PDF للطالب</Btn></div>
             {!detail ? <div className={card}>جارٍ تحميل بيانات الطالب…</div> : (
               <>
                 <div className="grid gap-4 md:grid-cols-4">
@@ -661,11 +672,11 @@ export default function TeacherApp({ initialTab = "overview", initialStudentId }
           </div>
         )}
 
-        {/* ---------------- المسابقة المباشرة ---------------- */}
-        {tab === "live" && <div className="space-y-4"><div><h1 className="text-3xl font-black text-turq-900">مسابقة مباشرة على أجهزة الطلاب</h1><p className="text-slate-500">الطلاب يجيبون من هواتهم برمز الغرفة، والنتائج تظهر على السبورة لحظيًا.</p></div><LiveBoardGame /></div>}
+        {/* ---------------- الوسائط المشتركة ---------------- */}
+        {tab === "media" && <MediaManager media={data.media ?? []} onChange={loadData} />}
 
         {/* ---------------- السبورة ---------------- */}
-        {tab === "board" && <div className="space-y-4"><div><h1 className="text-3xl font-black text-turq-900">نشاط السبورة الذكية (جماعي)</h1><p className="text-slate-500">فريقان، بلا حساب طالب. يُفضّل تكبير الشاشة F11.</p></div><BoardGame /></div>}
+        {tab === "board" && <LiveQuizBoard />}
 
         {/* ---------------- الإعدادات ---------------- */}
         {tab === "settings" && (
@@ -680,16 +691,8 @@ export default function TeacherApp({ initialTab = "overview", initialStudentId }
                 <div className="mt-5 rounded-2xl bg-slate-50 p-3 text-xs text-slate-600"><p className="font-bold">حالة النظام</p><p>قاعدة البيانات متصلة ✅ — الدخول بكلمة المرور فقط.</p><p>الدخول بكلمة المرور فقط، والجلسة تعمل بدون كوكيز.</p></div>
               </section>
             </div>
-            <section className={card}>
-              <h2 className="mb-1 text-lg font-black text-turq-900">🖼️ الصور والمقاطع الصوتية</h2>
-              <p className="mb-3 text-sm text-slate-500">عدّل صور الدرس وأضف مقاطع صوتية، وتظهر التغييرات لجميع الطلاب على كل الأجهزة فورًا (تُحفظ في قاعدة البيانات).</p>
-              <MediaManager act={act} onSaved={() => loadData()} />
-            </section>
             <section className={card}><h2 className="mb-3 text-lg font-black text-turq-900">عناوين المحطات وروابط الفيديو</h2><div className="space-y-2">{slides.map((sl, i) => <form key={sl.id} onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); void act("updateSlide", { id: sl.id, title: String(f.get("title") ?? ""), subtitle: String(f.get("subtitle") ?? ""), videoUrl: String(f.get("videoUrl") ?? "") }); }} className="grid items-center gap-2 rounded-2xl bg-slate-50 p-2 md:grid-cols-[40px_1fr_1fr_1.4fr_auto]"><span className="grid h-9 w-9 place-items-center rounded-full bg-turq-600 text-sm font-black text-white">{i + 1}</span><input name="title" defaultValue={sl.title} required className={input} /><input name="subtitle" defaultValue={sl.subtitle} className={input} /><input name="videoUrl" type="url" defaultValue={sl.videoUrl ?? ""} placeholder="رابط فيديو (اختياري)" className={input} /><button className="rounded-xl bg-turq-600 px-3 py-2 text-sm font-bold text-white">حفظ</button></form>)}</div></section>
-            <section className={card}><h2 className="mb-1 text-lg font-black text-turq-900">ملفات المعلم الصوتية</h2><p className="mb-3 text-sm text-slate-500">حتى 3 ميغابايت، تُحفظ في قاعدة البيانات.</p>
-              <form onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const file = f.get("file"); if (!(file instanceof File) || !file.size) return; const buf = await file.arrayBuffer(); let bin = ""; const bytes = new Uint8Array(buf); for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]); await act("uploadTeacherAudio", { title: String(f.get("title") ?? "تسجيل المعلم"), slideKey: String(f.get("slideKey") ?? "general"), mimeType: file.type || "audio/webm", dataBase64: btoa(bin) }); e.currentTarget.reset(); }} className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto]"><input name="title" placeholder="عنوان التسجيل" className={input} /><select name="slideKey" className={input}>{slides.map((sl) => <option key={sl.key} value={sl.key}>{sl.title}</option>)}</select><input name="file" type="file" accept="audio/*" required className={input} /><button className="rounded-xl bg-brand-orange px-4 py-2 font-bold text-white">⬆️ رفع</button></form>
-              <ul className="mt-3 grid gap-2 md:grid-cols-2">{data.teacherAudios.map((a) => <li key={a.id} className="flex flex-wrap items-center gap-2 rounded-2xl bg-slate-50 p-3"><div className="flex-1"><p className="font-bold">{a.title}</p><p className="text-xs text-slate-500">{slideTitle(a.slideKey)}</p><TeacherAudio id={a.id} /></div><ConfirmButton message="حذف التسجيل؟" onConfirm={() => act("deleteTeacherAudio", { id: a.id })} className="rounded-xl bg-rose-50 px-3 py-1 text-sm font-bold text-rose-700">حذف</ConfirmButton></li>)}{data.teacherAudios.length === 0 && <li className="text-sm text-slate-500">لا توجد ملفات.</li>}</ul>
-            </section>
+            <section className={card}><div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="mb-1 text-lg font-black text-turq-900">🖼️ الصور و🎧 المقاطع الصوتية</h2><p className="text-sm text-slate-500">أصبحت الإدارة في تبويب مستقل، والمقاطع تظهر فعليًا للطلاب في المحطات. التعديلات مشتركة لجميع الأجهزة.</p></div><Btn onClick={() => setTab("media")}>فتح إدارة الصور والصوتيات ←</Btn></div></section>
           </div>
         )}
       </main>

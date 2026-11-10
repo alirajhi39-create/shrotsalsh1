@@ -10,7 +10,9 @@ import {
   real,
   uniqueIndex,
   index,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 /* ------------------------------------------------------------------ */
 /*  المعلمون والفصول والطلاب                                            */
@@ -326,41 +328,6 @@ export const teacherSettings = pgTable(
   (t) => [uniqueIndex("teacher_settings_teacher_lesson_uq").on(t.teacherId, t.lessonId)],
 );
 
-/**
- * مكتبة الوسائط: صور ومقاطع صوتية يرفعها/يضيفها المعلم،
- * وتُعرض لجميع الطلاب على كل الأجهزة فورًا (تُحفظ في قاعدة البيانات).
- */
-export const mediaAssets = pgTable(
-  "media_assets",
-  {
-    id: serial("id").primaryKey(),
-    teacherId: integer("teacher_id")
-      .notNull()
-      .references(() => teachers.id, { onDelete: "cascade" }),
-    lessonId: integer("lesson_id")
-      .notNull()
-      .references(() => lessons.id, { onDelete: "cascade" }),
-    kind: varchar("kind", { length: 16 }).notNull().default("image"),
-    /** موضع العرض: صورة البطل، محطة 5… أو مفتاح عام */
-    slot: varchar("slot", { length: 64 }).notNull(),
-    title: text("title").notNull().default(""),
-    altText: text("alt_text").notNull().default(""),
-    mime: varchar("mime", { length: 80 }).notNull(),
-    /** الترميز الأساسي (data:) أو base64 خام */
-    dataUrl: text("data_url").notNull(),
-    /** مفتاح الصورة الافتراضية التي تحل محلها (للتراجع) */
-    replaces: varchar("replaces", { length: 120 }),
-    bytes: integer("bytes").notNull().default(0),
-    active: boolean("active").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [
-    uniqueIndex("media_assets_lesson_slot_active_uq").on(t.lessonId, t.slot, t.active),
-    index("media_assets_slot_idx").on(t.lessonId, t.slot),
-  ],
-);
-
 export const auditLogs = pgTable(
   "audit_logs",
   {
@@ -376,6 +343,102 @@ export const auditLogs = pgTable(
   (t) => [index("audit_logs_created_idx").on(t.createdAt)],
 );
 
+/** وسائط منشورة مشتركة لجميع الأجهزة؛ منفصلة عن تسجيلات الطلاب الخاصة. */
+export const lessonMedia = pgTable(
+  "lesson_media",
+  {
+    id: serial("id").primaryKey(),
+    lessonId: integer("lesson_id")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    teacherId: integer("teacher_id").references(() => teachers.id, { onDelete: "set null" }),
+    kind: varchar("kind", { length: 16 }).notNull(),
+    slot: varchar("slot", { length: 64 }),
+    slideKey: varchar("slide_key", { length: 64 }),
+    title: text("title").notNull(),
+    alt: text("alt").notNull().default(""),
+    source: varchar("source", { length: 16 }).notNull().default("uploaded"),
+    mimeType: varchar("mime_type", { length: 64 }).notNull(),
+    dataBase64: text("data_base64"),
+    url: text("url"),
+    sizeBytes: integer("size_bytes").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    orderIndex: integer("order_index").notNull().default(0),
+    legacyAudioId: integer("legacy_audio_id")
+      .unique()
+      .references(() => audioRecordings.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("lesson_media_lesson_slot_uq").on(t.lessonId, t.slot),
+    index("lesson_media_published_idx").on(t.lessonId, t.kind, t.active),
+    index("lesson_media_slide_idx").on(t.lessonId, t.slideKey),
+    check("lesson_media_kind_check", sql`${t.kind} in ('image','audio')`),
+    check("lesson_media_source_check", sql`(${t.source} = 'uploaded' and ${t.dataBase64} is not null and ${t.url} is null) or (${t.source} = 'url' and ${t.url} is not null and ${t.dataBase64} is null)`),
+    check("lesson_media_target_check", sql`(${t.kind} = 'image' and ${t.slot} is not null and ${t.slideKey} is null) or (${t.kind} = 'audio' and ${t.slideKey} is not null and ${t.slot} is null)`),
+  ],
+);
+
+/** مسابقة السبورة الذكية عن بُعد: غرفة يتحكم بها المعلم وأجهزة طلاب مستقلة. */
+export const liveQuizRooms = pgTable(
+  "live_quiz_rooms",
+  {
+    id: serial("id").primaryKey(),
+    lessonId: integer("lesson_id").notNull().references(() => lessons.id, { onDelete: "cascade" }),
+    teacherId: integer("teacher_id").notNull().references(() => teachers.id, { onDelete: "cascade" }),
+    code: varchar("code", { length: 8 }).notNull().unique(),
+    mode: varchar("mode", { length: 24 }).notNull(),
+    status: varchar("status", { length: 16 }).notNull().default("lobby"),
+    currentRound: integer("current_round").notNull().default(0),
+    questionSeconds: integer("question_seconds").notNull().default(30),
+    questions: jsonb("questions").$type<LiveQuestion[]>().notNull(),
+    questionEndsAt: timestamp("question_ends_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [index("live_quiz_rooms_teacher_idx").on(t.teacherId, t.createdAt), check("live_quiz_rooms_status_check", sql`${t.status} in ('lobby','active','reveal','ended')`)],
+);
+
+export const liveQuizPlayers = pgTable(
+  "live_quiz_players",
+  {
+    id: serial("id").primaryKey(),
+    roomId: integer("room_id").notNull().references(() => liveQuizRooms.id, { onDelete: "cascade" }),
+    studentId: integer("student_id").references(() => students.id, { onDelete: "set null" }),
+    name: text("name").notNull(),
+    nameKey: text("name_key").notNull(),
+    tokenHash: varchar("token_hash", { length: 128 }).notNull().unique(),
+    active: boolean("active").notNull().default(true),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("live_quiz_players_room_name_uq").on(t.roomId, t.nameKey), index("live_quiz_players_room_idx").on(t.roomId)],
+);
+
+export const liveQuizAnswers = pgTable(
+  "live_quiz_answers",
+  {
+    id: serial("id").primaryKey(),
+    roomId: integer("room_id").notNull().references(() => liveQuizRooms.id, { onDelete: "cascade" }),
+    playerId: integer("player_id").notNull().references(() => liveQuizPlayers.id, { onDelete: "cascade" }),
+    roundIndex: integer("round_index").notNull(),
+    optionId: varchar("option_id", { length: 64 }).notNull(),
+    isCorrect: boolean("is_correct").notNull(),
+    points: integer("points").notNull().default(0),
+    answeredAt: timestamp("answered_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("live_quiz_answers_once_uq").on(t.roomId, t.playerId, t.roundIndex), index("live_quiz_answers_round_idx").on(t.roomId, t.roundIndex)],
+);
+
+import type { LiveQuestion } from "@/lib/live-quiz";
+export type { LiveQuestion } from "@/lib/live-quiz";
+export type LiveQuizRoom = typeof liveQuizRooms.$inferSelect;
+export type LiveQuizPlayer = typeof liveQuizPlayers.$inferSelect;
+export type LessonMedia = typeof lessonMedia.$inferSelect;
 export type Question = typeof questions.$inferSelect;
 export type StudentAnswer = typeof studentAnswers.$inferSelect;
 export type StudentProgress = typeof studentProgress.$inferSelect;

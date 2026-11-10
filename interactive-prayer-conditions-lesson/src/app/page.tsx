@@ -1,6 +1,4 @@
 import SafeImage from "@/components/lesson/SafeImage";
-import MediaImage from "@/components/lesson/MediaImage";
-import { getMediaMap } from "@/lib/media";
 import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -14,7 +12,6 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   await ensureSeeded();
-  const media = await getMediaMap(["hero-boy"]);
   const [rooms, current] = await Promise.all([
     db.select({ id: classrooms.id, name: classrooms.name }).from(classrooms).where(eq(classrooms.active, true)).orderBy(asc(classrooms.name)),
     getStudentFromCookie(),
@@ -30,14 +27,9 @@ export default async function HomePage() {
             <p className="font-black text-turq-900">{LESSON.subject}</p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/play" className="rounded-2xl bg-brand-orange px-4 py-2 text-sm font-bold text-white shadow hover:brightness-110">
-            🎮 مسابقة الطلاب
-          </Link>
-          <Link href="/teacher/login" className="rounded-2xl bg-white px-4 py-2 text-sm font-bold text-turq-700 shadow hover:bg-turq-50">
-            👨‍🏫 دخول المعلم
-          </Link>
-        </div>
+        <Link href="/teacher/login" className="rounded-2xl bg-white px-4 py-2 text-sm font-bold text-turq-700 shadow hover:bg-turq-50">
+          👨‍🏫 دخول المعلم
+        </Link>
       </header>
 
       <section className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-6 lg:grid-cols-2">
@@ -56,12 +48,10 @@ export default async function HomePage() {
               </span>
             ))}
           </div>
-          <MediaImage
-            slot="hero-boy"
-            path="/images/hero-boy.webp"
+          <SafeImage
+            slot="home_hero"
+            src="/images/hero-boy.webp"
             alt="طالب يستعد للصلاة"
-            initialSrc={media["hero-boy"]?.dataUrl}
-            initialAlt={media["hero-boy"]?.altText}
             className="mx-auto mt-6 h-64 w-64 animate-float lg:h-80 lg:w-80"
             imgClassName="drop-shadow-2xl"
             fallback="🧒"

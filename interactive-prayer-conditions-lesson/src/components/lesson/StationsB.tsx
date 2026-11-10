@@ -2,9 +2,8 @@
 
 import { useMemo, useState } from "react";
 import SafeImage from "./SafeImage";
-import SceneArt, { type SceneVariant } from "./SceneArt";
-import MediaImage from "./MediaImage";
-import { TeacherAudioPlayer } from "./media";
+import { LessonScene } from "./MediaViews";
+import type { SceneVariant } from "./SceneArt";
 import {
   AWRAH,
   AWRAH_RULE_CHOICES,
@@ -52,11 +51,7 @@ export function StationNajasa({ ctx, title, subtitle }: StationProps) {
   };
 
   return (
-    <StationShell emoji="🧼" title={title} subtitle={subtitle} strategy="السحب والإفلات" onSpeak={() => ctx.speak("عند إرادة الصلاة تجب إزالة النجاسة عن ثلاثة أشياء: البدن، والملابس، ومكان الصلاة")}>
-      <Card className="bg-gradient-to-l from-emerald-50 to-white">
-        <p className="text-sm font-bold text-turq-800">🎙️ شرح المعلم الصوتي:</p>
-        <TeacherAudioPlayer slot="najasa-voice" fallbackText="عند إرادة الصلاة تجب إزالة النجاسة عن ثلاثة أشياء: البدن، والملابس، ومكان الصلاة" speak={ctx.speak} className="mt-2" />
-      </Card>
+    <StationShell slideKey="najasa" emoji="🧼" title={title} subtitle={subtitle} strategy="السحب والإفلات" onSpeak={() => ctx.speak("عند إرادة الصلاة تجب إزالة النجاسة عن ثلاثة أشياء: البدن، والملابس، ومكان الصلاة")}>
       <Card className="bg-gradient-to-l from-emerald-50 to-white">
         <h3 className="text-2xl font-black text-turq-900">الشرط الخامس: إزالة النجاسة</h3>
         <p className="mt-2 text-lg font-semibold text-slate-700">عند إرادة الصلاة تجب إزالة النجاسة عن ثلاثة أشياء هي:</p>
@@ -64,7 +59,7 @@ export function StationNajasa({ ctx, title, subtitle }: StationProps) {
           {NAJASA_PLACES.map((p, i) => (
             <div key={p.key} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
               <span className="grid h-10 w-10 place-items-center rounded-full bg-emerald-500 font-black text-white">{i + 1}</span>
-              <SceneArt variant={p.key as SceneVariant} className="h-12 w-16 shrink-0" />
+              <LessonScene variant={p.key as SceneVariant} className="h-12 w-16 shrink-0" />
               <span className="text-xl font-black text-turq-900">{p.label}</span>
             </div>
           ))}
@@ -143,12 +138,12 @@ export function StationDetective({ ctx, title, subtitle }: StationProps) {
   };
 
   return (
-    <StationShell emoji="🔍" title={title} subtitle={subtitle} strategy="المحقق الصغير" onSpeak={() => ctx.speak("أنت المحقق الصغير. اكتشف موضع المشكلة وطريقة معالجتها قبل الصلاة")}>
+    <StationShell slideKey="detective" emoji="🔍" title={title} subtitle={subtitle} strategy="المحقق الصغير" onSpeak={() => ctx.speak("أنت المحقق الصغير. اكتشف موضع المشكلة وطريقة معالجتها قبل الصلاة")}>
       <Card className="overflow-hidden bg-gradient-to-l from-orange-50 to-white">
         <div className="grid items-center gap-4 md:grid-cols-[180px_1fr]">
-          <MediaImage
-            slot="detective-kid"
-            path="/images/detective-kid.webp"
+          <SafeImage
+            slot="detective_hero"
+            src="/images/detective-kid.webp"
             alt="المحقق الصغير"
             className="mx-auto h-44 w-44 animate-float"
             imgClassName="drop-shadow-xl"
@@ -245,11 +240,7 @@ export function StationAwrah({ ctx, title, subtitle }: StationProps) {
   };
 
   return (
-    <StationShell emoji="👕" title={title} subtitle={subtitle} strategy="التعلم البصري" onSpeak={() => ctx.speak(`الشرط السادس: ستر العورة. ${AWRAH.man} ${AWRAH.woman}`)}>
-      <Card className="bg-gradient-to-l from-orange-50 to-white">
-        <p className="text-sm font-bold text-turq-800">🎙️ شرح المعلم الصوتي:</p>
-        <TeacherAudioPlayer slot="awrah-voice" fallbackText={`الشرط السادس: ستر العورة. ${AWRAH.man} ${AWRAH.woman}`} speak={ctx.speak} className="mt-2" />
-      </Card>
+    <StationShell slideKey="awrah" emoji="👕" title={title} subtitle={subtitle} strategy="التعلم البصري" onSpeak={() => ctx.speak(`الشرط السادس: ستر العورة. ${AWRAH.man} ${AWRAH.woman}`)}>
       <Card className="bg-gradient-to-l from-orange-50 to-white">
         <h3 className="text-2xl font-black text-turq-900">الشرط السادس: ستر العورة</h3>
         <button onClick={() => setStoryOpen((v) => !v)} className="mt-2 text-start font-bold text-brand-blue underline-offset-4 hover:underline">
@@ -260,13 +251,13 @@ export function StationAwrah({ ctx, title, subtitle }: StationProps) {
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="text-center">
-          <MediaImage slot="man-prayer" path="/images/man-prayer.webp" alt="لباس الرجل المناسب للصلاة" className="mx-auto h-64 w-48" fallback="👳" />
+          <SafeImage slot="awrah_man" src="/images/man-prayer.webp" alt="لباس الرجل المناسب للصلاة" className="mx-auto h-64 w-48" fallback="👳" />
           <h4 className="mt-3 text-xl font-black text-turq-900">عورة الرجل في الصلاة</h4>
           <p className="mt-1 rounded-2xl bg-turq-50 p-3 text-lg font-bold text-turq-900">من السرة إلى الركبة</p>
           <p className="mt-2 text-sm text-slate-500">ملابس ساترة من السرة إلى الركبة على الأقل.</p>
         </Card>
         <Card className="text-center">
-          <MediaImage slot="woman-prayer" path="/images/woman-prayer.webp" alt="لباس المرأة المناسب للصلاة" className="mx-auto h-64 w-48" fallback="🧕" />
+          <SafeImage slot="awrah_woman" src="/images/woman-prayer.webp" alt="لباس المرأة المناسب للصلاة" className="mx-auto h-64 w-48" fallback="🧕" />
           <h4 className="mt-3 text-xl font-black text-turq-900">عورة المرأة في الصلاة</h4>
           <p className="mt-1 rounded-2xl bg-turq-50 p-3 text-lg font-bold text-turq-900">تغطي كامل جسدها ما عدا وجهها وكفيها</p>
           <p className="mt-2 text-sm text-slate-500">لباس واسع يغطي الجسد كله ما عدا الوجه والكفين.</p>
@@ -400,7 +391,7 @@ export function StationAyah({ ctx, title, subtitle }: StationProps) {
   };
 
   return (
-    <StationShell emoji="📖" title={title} subtitle={subtitle} strategy="الاستنتاج" onSpeak={() => ctx.speak(`قال الله تعالى: يا بني آدم خذوا زينتكم عند كل مسجد`)}>
+    <StationShell slideKey="ayah" emoji="📖" title={title} subtitle={subtitle} strategy="الاستنتاج" onSpeak={() => ctx.speak(`قال الله تعالى: يا بني آدم خذوا زينتكم عند كل مسجد`)}>
       <EvidenceCard intro="قال الله تعالى:" text={EVIDENCE.ayah.text} source={EVIDENCE.ayah.source} quran />
 
       <Card>
@@ -451,11 +442,6 @@ export function StationAyah({ ctx, title, subtitle }: StationProps) {
             )}
           </div>
         )}
-      </Card>
-
-      <Card>
-        <h3 className="mb-2 text-xl font-black text-turq-900">🎙️ استمع إلى تلاوة الآية (تسجيل المعلم)</h3>
-        <TeacherAudioPlayer slot="ayah-recite" fallbackText={`قال الله تعالى: يا بني آدم خذوا زينتكم عند كل مسجد`} speak={ctx.speak} />
       </Card>
 
       {ctx.state.settings.allowAudio && (

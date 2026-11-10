@@ -175,13 +175,6 @@ export function generateResumeCode(length = 6): string {
   return out;
 }
 
-/** رمز انضمام قصير للمسابقة الجماعية (أرقام فقط لسهولة الإدخال من الجوال) */
-export function generateRoomCode(): string {
-  const bytes = randomBytes(2);
-  const n = (bytes[0] << 8 | bytes[1]) % 10000;
-  return String(n).padStart(4, "0");
-}
-
 export function generateSerial(): string {
   return `SH-${generateResumeCode(10)}`;
 }

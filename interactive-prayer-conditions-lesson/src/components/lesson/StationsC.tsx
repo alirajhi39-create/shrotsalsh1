@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import MediaImage from "./MediaImage";
-import { TeacherAudioPlayer } from "./media";
+import SafeImage from "./SafeImage";
 import Link from "next/link";
 import { CHAMPION_LEVELS, CLASSIFY_CARDS, CONDITIONS, SKILLS, type ActivityResult } from "@/lib/content";
 import type { AttemptView } from "@/lib/student";
@@ -41,7 +40,7 @@ export function StationClassify({ ctx, title, subtitle }: StationProps) {
   };
 
   return (
-    <StationShell emoji="🗂️" title={title} subtitle={subtitle} strategy="التصنيف والتعلم التعاوني" onSpeak={() => ctx.speak("صنف كل موقف تحت الشرط الصحيح من شروط الصلاة الستة")}>
+    <StationShell slideKey="classify" emoji="🗂️" title={title} subtitle={subtitle} strategy="التصنيف والتعلم التعاوني" onSpeak={() => ctx.speak("صنف كل موقف تحت الشرط الصحيح من شروط الصلاة الستة")}>
       <Card className="bg-gradient-to-l from-indigo-50 to-white">
         <p className="text-lg font-semibold text-slate-700">
           أمامك مواقف مختلفة؛ ضع كل موقف تحت الشرط الذي يدل عليه. يمكن للمعلم تشغيل هذا النشاط جماعيًا على السبورة الذكية من لوحة التحكم.
@@ -105,7 +104,7 @@ export function StationBook({ ctx, title, subtitle }: StationProps) {
   const answeredCount = qs.filter((q) => ctx.state.answers[`q_${q.id}`]).length;
 
   return (
-    <StationShell emoji="📘" title={title} subtitle={subtitle} strategy="التدريب والممارسة" onSpeak={() => ctx.speak("حل أنشطة الكتاب المدرسي، وستصحح الأسئلة الموضوعية تلقائيًا")}>
+    <StationShell slideKey="book" emoji="📘" title={title} subtitle={subtitle} strategy="التدريب والممارسة" onSpeak={() => ctx.speak("حل أنشطة الكتاب المدرسي، وستصحح الأسئلة الموضوعية تلقائيًا")}>
       <Card className="bg-gradient-to-l from-sky-50 to-white">
         <p className="text-lg font-semibold text-slate-700">أنشطة الكتاب (ص 63–65) محوّلة إلى تدريبات إلكترونية. الأسئلة الموضوعية تُصحح فورًا، والسؤال الكتابي يصححه المعلم.</p>
         <p className="mt-2 text-sm font-bold text-turq-700">
@@ -224,7 +223,7 @@ export function StationQuiz({ ctx, title, subtitle }: StationProps) {
   if (mode === "result" && shown) {
     const passed = shown.percent >= pass;
     return (
-      <StationShell emoji="📝" title={title} subtitle={subtitle} strategy="التقويم التفاعلي">
+      <StationShell slideKey="quiz" emoji="📝" title={title} subtitle={subtitle} strategy="التقويم التفاعلي">
         <Card className={cx("text-center", passed ? "bg-gradient-to-br from-emerald-50 to-white" : "bg-gradient-to-br from-orange-50 to-white")}>
           <div className="text-6xl">{passed ? "🏅" : "💪"}</div>
           <h3 className="mt-2 text-3xl font-black text-turq-900">{Math.round(shown.percent)}%</h3>
@@ -295,7 +294,7 @@ export function StationQuiz({ ctx, title, subtitle }: StationProps) {
   }
 
   return (
-    <StationShell emoji="📝" title={title} subtitle={subtitle} strategy="التقويم التفاعلي" onSpeak={() => ctx.speak("اقرأ كل سؤال بتمعن ثم أجب، وعند الانتهاء اضغط إرسال الاختبار")}>
+    <StationShell slideKey="quiz" emoji="📝" title={title} subtitle={subtitle} strategy="التقويم التفاعلي" onSpeak={() => ctx.speak("اقرأ كل سؤال بتمعن ثم أجب، وعند الانتهاء اضغط إرسال الاختبار")}>
       <Card className="bg-gradient-to-l from-sky-50 to-white">
         <p className="text-lg font-semibold text-slate-700">
           الاختبار يحتوي على {qs.length} سؤالًا متنوعًا. نسبة النجاح {pass}%. المحاولة {attempts.length + 1} من {ctx.state.attemptsAllowed}.
@@ -379,12 +378,12 @@ export function StationChampion({ ctx, title, subtitle }: StationProps) {
   const firstCorrect = CHAMPION_LEVELS.filter((l) => first[l.key] === l.correct).length;
 
   return (
-    <StationShell emoji="🏆" title={title} subtitle={subtitle} strategy="التعلم باللعب" onSpeak={() => ctx.speak("لعبة بطل شروط الصلاة: اجتز ستة تحديات، كل تحد يمثل شرطًا من شروط الصلاة")}>
+    <StationShell slideKey="champion" emoji="🏆" title={title} subtitle={subtitle} strategy="التعلم باللعب" onSpeak={() => ctx.speak("لعبة بطل شروط الصلاة: اجتز ستة تحديات، كل تحد يمثل شرطًا من شروط الصلاة")}>
       <Card className="bg-gradient-to-l from-amber-50 via-white to-turq-50">
         <div className="flex flex-wrap items-center gap-4">
-          <MediaImage
-            slot="champion-badge"
-            path="/images/champion-badge.webp"
+          <SafeImage
+            slot="champion_badge"
+            src="/images/champion-badge.webp"
             alt="وسام البطل"
             className={cx("h-28 w-28", finished ? "animate-float" : "opacity-40 grayscale")}
             fallback="🏆"

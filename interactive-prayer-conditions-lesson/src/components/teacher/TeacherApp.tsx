@@ -7,6 +7,7 @@ import { ACTIVITIES, SKILLS, SLIDES } from "@/lib/content";
 import { KIND_LABELS, humanizeActivityAnswer, humanizeResponse } from "@/lib/grading";
 import { BarChart, ColumnChart, Donut, StatCard } from "./charts";
 import BoardGame from "./BoardGame";
+import LiveBoardGame from "./LiveBoardGame";
 import MediaManager from "./MediaManager";
 import IframeHint from "@/components/IframeHint";
 import { Btn, cx } from "@/components/lesson/ui";
@@ -115,7 +116,7 @@ type Detail = {
   questions: { id: number; kind: string; prompt: string; options: Record<string, unknown>; answer: Record<string, unknown> }[];
 };
 
-type Tab = "overview" | "students" | "questions" | "board" | "settings";
+type Tab = "overview" | "students" | "questions" | "board" | "live" | "settings";
 
 /* ------------------------------------------------------------------ */
 /*  أدوات                                                              */
@@ -498,6 +499,7 @@ export default function TeacherApp({ initialTab = "overview", initialStudentId }
     { key: "overview", label: "النظرة العامة", icon: "📊" },
     { key: "students", label: "الطلاب والفصول", icon: "🧑‍🎓" },
     { key: "questions", label: "الأسئلة والأنشطة", icon: "📝" },
+    { key: "live", label: "مسابقة مباشرة", icon: "🎮" },
     { key: "board", label: "السبورة الذكية", icon: "🖥️" },
     { key: "settings", label: "الإعدادات", icon: "⚙️" },
   ];
@@ -535,7 +537,12 @@ export default function TeacherApp({ initialTab = "overview", initialStudentId }
           <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div><h1 className="text-3xl font-black text-turq-900">النظرة العامة</h1><p className="text-slate-500">بيانات حقيقية من قاعدة البيانات — اضغط «تحديث» لمتابعة التقدم المباشر.</p></div>
-              <div className="flex gap-2"><Btn variant="success" onClick={() => download("xlsx")}>⬇️ Excel</Btn><Btn variant="primary" onClick={() => download("csv")}>⬇️ CSV</Btn></div>
+              <div className="flex flex-wrap gap-2">
+                <Btn variant="success" onClick={() => download("xlsx")}>⬇️ Excel</Btn>
+                <Btn variant="primary" onClick={() => download("csv")}>⬇️ CSV</Btn>
+                <Btn variant="warning" onClick={() => window.open(`/api/teacher/report?kind=students`, "_blank")}>📄 تقرير PDF للطلاب</Btn>
+                <Btn variant="secondary" onClick={() => window.open(`/api/teacher/report`, "_blank")}>📊 تقرير عام PDF</Btn>
+              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               <StatCard title="إجمالي الطلاب" value={students.length} hint={`${rooms.length} فصول`} icon="🧑‍🎓" />
@@ -576,7 +583,7 @@ export default function TeacherApp({ initialTab = "overview", initialStudentId }
         {/* ---------------- الطلاب ---------------- */}
         {tab === "students" && !selected && (
           <div className="space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-3xl font-black text-turq-900">الطلاب والفصول</h1><div className="flex gap-2"><Btn variant="success" size="sm" onClick={() => download("xlsx")}>⬇️ Excel</Btn><Btn variant="secondary" size="sm" onClick={() => download("csv")}>⬇️ CSV</Btn></div></div>
+            <div className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-3xl font-black text-turq-900">الطلاب والفصول</h1><div className="flex flex-wrap gap-2"><Btn variant="success" size="sm" onClick={() => download("xlsx")}>⬇️ Excel</Btn><Btn variant="secondary" size="sm" onClick={() => download("csv")}>⬇️ CSV</Btn><Btn variant="warning" size="sm" onClick={() => window.open(`/api/teacher/report?kind=students${filter ? `&classroomId=${filter}` : ""}`, "_blank")}>📄 تقرير PDF</Btn></div></div>
             <div className="grid gap-4 lg:grid-cols-2">
               <section className={card}>
                 <h2 className="mb-3 text-lg font-black text-turq-900">الفصول</h2>
@@ -653,6 +660,9 @@ export default function TeacherApp({ initialTab = "overview", initialStudentId }
             <section className={card}><h2 className="mb-3 text-lg font-black text-turq-900">أنشطة المحطات التفاعلية</h2><div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">{Object.entries(ACTIVITIES).map(([k, a]) => <div key={k} className="rounded-2xl border p-3 text-sm"><p className="text-xs font-bold text-turq-700">{slideTitle(a.slideKey)}</p><p className="font-bold">{a.title}</p><p className="text-xs text-slate-500">{a.kind} — {a.maxScore} درجة — {a.required ? "إلزامي" : "اختياري"}</p></div>)}</div></section>
           </div>
         )}
+
+        {/* ---------------- المسابقة المباشرة ---------------- */}
+        {tab === "live" && <div className="space-y-4"><div><h1 className="text-3xl font-black text-turq-900">مسابقة مباشرة على أجهزة الطلاب</h1><p className="text-slate-500">الطلاب يجيبون من هواتهم برمز الغرفة، والنتائج تظهر على السبورة لحظيًا.</p></div><LiveBoardGame /></div>}
 
         {/* ---------------- السبورة ---------------- */}
         {tab === "board" && <div className="space-y-4"><div><h1 className="text-3xl font-black text-turq-900">نشاط السبورة الذكية (جماعي)</h1><p className="text-slate-500">فريقان، بلا حساب طالب. يُفضّل تكبير الشاشة F11.</p></div><BoardGame /></div>}

@@ -30,9 +30,14 @@ export default async function HomePage() {
             <p className="font-black text-turq-900">{LESSON.subject}</p>
           </div>
         </div>
-        <Link href="/teacher/login" className="rounded-2xl bg-white px-4 py-2 text-sm font-bold text-turq-700 shadow hover:bg-turq-50">
-          👨‍🏫 دخول المعلم
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/play" className="rounded-2xl bg-brand-orange px-4 py-2 text-sm font-bold text-white shadow hover:brightness-110">
+            🎮 مسابقة الطلاب
+          </Link>
+          <Link href="/teacher/login" className="rounded-2xl bg-white px-4 py-2 text-sm font-bold text-turq-700 shadow hover:bg-turq-50">
+            👨‍🏫 دخول المعلم
+          </Link>
+        </div>
       </header>
 
       <section className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-6 lg:grid-cols-2">

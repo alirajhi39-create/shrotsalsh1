@@ -7,6 +7,7 @@ import { ACTIVITIES, SKILLS, SLIDES } from "@/lib/content";
 import { KIND_LABELS, humanizeActivityAnswer, humanizeResponse } from "@/lib/grading";
 import { BarChart, ColumnChart, Donut, StatCard } from "./charts";
 import BoardGame from "./BoardGame";
+import MediaManager from "./MediaManager";
 import IframeHint from "@/components/IframeHint";
 import { Btn, cx } from "@/components/lesson/ui";
 
@@ -669,6 +670,11 @@ export default function TeacherApp({ initialTab = "overview", initialStudentId }
                 <div className="mt-5 rounded-2xl bg-slate-50 p-3 text-xs text-slate-600"><p className="font-bold">حالة النظام</p><p>قاعدة البيانات متصلة ✅ — الدخول بكلمة المرور فقط.</p><p>الدخول بكلمة المرور فقط، والجلسة تعمل بدون كوكيز.</p></div>
               </section>
             </div>
+            <section className={card}>
+              <h2 className="mb-1 text-lg font-black text-turq-900">🖼️ الصور والمقاطع الصوتية</h2>
+              <p className="mb-3 text-sm text-slate-500">عدّل صور الدرس وأضف مقاطع صوتية، وتظهر التغييرات لجميع الطلاب على كل الأجهزة فورًا (تُحفظ في قاعدة البيانات).</p>
+              <MediaManager act={act} onSaved={() => loadData()} />
+            </section>
             <section className={card}><h2 className="mb-3 text-lg font-black text-turq-900">عناوين المحطات وروابط الفيديو</h2><div className="space-y-2">{slides.map((sl, i) => <form key={sl.id} onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); void act("updateSlide", { id: sl.id, title: String(f.get("title") ?? ""), subtitle: String(f.get("subtitle") ?? ""), videoUrl: String(f.get("videoUrl") ?? "") }); }} className="grid items-center gap-2 rounded-2xl bg-slate-50 p-2 md:grid-cols-[40px_1fr_1fr_1.4fr_auto]"><span className="grid h-9 w-9 place-items-center rounded-full bg-turq-600 text-sm font-black text-white">{i + 1}</span><input name="title" defaultValue={sl.title} required className={input} /><input name="subtitle" defaultValue={sl.subtitle} className={input} /><input name="videoUrl" type="url" defaultValue={sl.videoUrl ?? ""} placeholder="رابط فيديو (اختياري)" className={input} /><button className="rounded-xl bg-turq-600 px-3 py-2 text-sm font-bold text-white">حفظ</button></form>)}</div></section>
             <section className={card}><h2 className="mb-1 text-lg font-black text-turq-900">ملفات المعلم الصوتية</h2><p className="mb-3 text-sm text-slate-500">حتى 3 ميغابايت، تُحفظ في قاعدة البيانات.</p>
               <form onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const file = f.get("file"); if (!(file instanceof File) || !file.size) return; const buf = await file.arrayBuffer(); let bin = ""; const bytes = new Uint8Array(buf); for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]); await act("uploadTeacherAudio", { title: String(f.get("title") ?? "تسجيل المعلم"), slideKey: String(f.get("slideKey") ?? "general"), mimeType: file.type || "audio/webm", dataBase64: btoa(bin) }); e.currentTarget.reset(); }} className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto]"><input name="title" placeholder="عنوان التسجيل" className={input} /><select name="slideKey" className={input}>{slides.map((sl) => <option key={sl.key} value={sl.key}>{sl.title}</option>)}</select><input name="file" type="file" accept="audio/*" required className={input} /><button className="rounded-xl bg-brand-orange px-4 py-2 font-bold text-white">⬆️ رفع</button></form>

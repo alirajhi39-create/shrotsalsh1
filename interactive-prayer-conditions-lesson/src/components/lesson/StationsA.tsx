@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import SafeImage from "./SafeImage";
 import SceneArt, { type SceneVariant } from "./SceneArt";
+import MediaImage from "./MediaImage";
+import { TeacherAudioPlayer } from "./media";
 import {
   AGE_QUESTION,
   BRAINSTORM_CHIPS,
@@ -70,10 +72,15 @@ export function StationIntro({ ctx, title, subtitle }: StationProps) {
 
   return (
     <StationShell emoji="🤔" title={title} subtitle={subtitle} strategy="العصف الذهني وأسئلة التوقع" onSpeak={() => ctx.speak(`${title}. ${question}`)}>
+      <Card className="bg-gradient-to-l from-sky-50 to-white">
+        <p className="text-sm font-bold text-turq-800">🎙️ استمع إلى شرح المعلم:</p>
+        <TeacherAudioPlayer slot="intro-voice" fallbackText={`${title}. ${question}`} speak={ctx.speak} className="mt-2" />
+      </Card>
       <Card className="overflow-hidden bg-gradient-to-l from-turq-50 to-white">
         <div className="grid items-center gap-6 md:grid-cols-[220px_1fr]">
-          <SafeImage
-            src="/images/hero-boy.webp"
+          <MediaImage
+            slot="hero-boy"
+            path="/images/hero-boy.webp"
             alt="طالب يستعد للصلاة"
             className="mx-auto h-56 w-56 animate-float"
             imgClassName="drop-shadow-xl"
@@ -429,6 +436,8 @@ export function StationTahara({ ctx, title, subtitle, videoUrl }: StationProps &
   return (
     <StationShell emoji="💧" title={title} subtitle={subtitle} strategy="شاهد – فكر – أجب" onSpeak={() => ctx.speak(`الشرط الرابع: الطهارة. ${EVIDENCE.hadithTahara.text}`)}>
       <Card className="bg-gradient-to-l from-cyan-50 to-white">
+        <p className="mb-2 text-sm font-bold text-turq-800">🎙️ شرح المعلم الصوتي:</p>
+        <TeacherAudioPlayer slot="tahara-voice" fallbackText={`الشرط الرابع: الطهارة. ${EVIDENCE.hadithTahara.text}`} speak={ctx.speak} />
         <div className="flex flex-wrap items-center gap-4">
           <div className="grid h-24 w-24 place-items-center rounded-3xl bg-cyan-100 text-6xl">🚰</div>
           <div className="flex-1">

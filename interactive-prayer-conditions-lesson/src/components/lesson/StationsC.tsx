@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import SafeImage from "./SafeImage";
+import MediaImage from "./MediaImage";
+import { TeacherAudioPlayer } from "./media";
 import Link from "next/link";
 import { CHAMPION_LEVELS, CLASSIFY_CARDS, CONDITIONS, SKILLS, type ActivityResult } from "@/lib/content";
 import type { AttemptView } from "@/lib/student";
@@ -381,8 +382,9 @@ export function StationChampion({ ctx, title, subtitle }: StationProps) {
     <StationShell emoji="🏆" title={title} subtitle={subtitle} strategy="التعلم باللعب" onSpeak={() => ctx.speak("لعبة بطل شروط الصلاة: اجتز ستة تحديات، كل تحد يمثل شرطًا من شروط الصلاة")}>
       <Card className="bg-gradient-to-l from-amber-50 via-white to-turq-50">
         <div className="flex flex-wrap items-center gap-4">
-          <SafeImage
-            src="/images/champion-badge.webp"
+          <MediaImage
+            slot="champion-badge"
+            path="/images/champion-badge.webp"
             alt="وسام البطل"
             className={cx("h-28 w-28", finished ? "animate-float" : "opacity-40 grayscale")}
             fallback="🏆"

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import SafeImage from "@/components/lesson/SafeImage";
+import MediaImage from "@/components/lesson/MediaImage";
+import { getMediaMap } from "@/lib/media";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -17,6 +18,7 @@ export default async function CertificatePage({ params }: { params: Promise<{ se
     .where(and(eq(certificates.serial, serial), eq(certificates.revoked, false)))
     .limit(1);
   if (!cert) notFound();
+  const media = await getMediaMap(["champion-badge"]);
 
   const date = new Date(cert.issuedAt);
   const hijri = new Intl.DateTimeFormat("ar-SA-u-ca-islamic", { dateStyle: "long" }).format(date);
@@ -74,7 +76,7 @@ export default async function CertificatePage({ params }: { params: Promise<{ se
               <p>معلم المادة</p>
               <p className="mt-6 border-t-2 border-slate-300 pt-2 text-lg text-turq-900">{LESSON.teacher}</p>
             </div>
-            <SafeImage src="/images/champion-badge.webp" alt="وسام" className="mx-auto h-32 w-32" fallback="🏅" />
+            <MediaImage slot="champion-badge" path="/images/champion-badge.webp" alt="وسام البطل" initialSrc={media["champion-badge"]?.dataUrl} className="mx-auto h-32 w-32" fallback="🏅" />
             <div className="text-center text-sm font-bold text-slate-600">
               <p>تاريخ الإصدار</p>
               <p className="mt-2">{hijri}</p>

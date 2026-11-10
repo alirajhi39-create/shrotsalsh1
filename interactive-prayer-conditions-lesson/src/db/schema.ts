@@ -326,6 +326,41 @@ export const teacherSettings = pgTable(
   (t) => [uniqueIndex("teacher_settings_teacher_lesson_uq").on(t.teacherId, t.lessonId)],
 );
 
+/**
+ * مكتبة الوسائط: صور ومقاطع صوتية يرفعها/يضيفها المعلم،
+ * وتُعرض لجميع الطلاب على كل الأجهزة فورًا (تُحفظ في قاعدة البيانات).
+ */
+export const mediaAssets = pgTable(
+  "media_assets",
+  {
+    id: serial("id").primaryKey(),
+    teacherId: integer("teacher_id")
+      .notNull()
+      .references(() => teachers.id, { onDelete: "cascade" }),
+    lessonId: integer("lesson_id")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    kind: varchar("kind", { length: 16 }).notNull().default("image"),
+    /** موضع العرض: صورة البطل، محطة 5… أو مفتاح عام */
+    slot: varchar("slot", { length: 64 }).notNull(),
+    title: text("title").notNull().default(""),
+    altText: text("alt_text").notNull().default(""),
+    mime: varchar("mime", { length: 80 }).notNull(),
+    /** الترميز الأساسي (data:) أو base64 خام */
+    dataUrl: text("data_url").notNull(),
+    /** مفتاح الصورة الافتراضية التي تحل محلها (للتراجع) */
+    replaces: varchar("replaces", { length: 120 }),
+    bytes: integer("bytes").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("media_assets_lesson_slot_active_uq").on(t.lessonId, t.slot, t.active),
+    index("media_assets_slot_idx").on(t.lessonId, t.slot),
+  ],
+);
+
 export const auditLogs = pgTable(
   "audit_logs",
   {

@@ -1,4 +1,6 @@
 import SafeImage from "@/components/lesson/SafeImage";
+import MediaImage from "@/components/lesson/MediaImage";
+import { getMediaMap } from "@/lib/media";
 import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -12,6 +14,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   await ensureSeeded();
+  const media = await getMediaMap(["hero-boy"]);
   const [rooms, current] = await Promise.all([
     db.select({ id: classrooms.id, name: classrooms.name }).from(classrooms).where(eq(classrooms.active, true)).orderBy(asc(classrooms.name)),
     getStudentFromCookie(),
@@ -48,9 +51,12 @@ export default async function HomePage() {
               </span>
             ))}
           </div>
-          <SafeImage
-            src="/images/hero-boy.webp"
+          <MediaImage
+            slot="hero-boy"
+            path="/images/hero-boy.webp"
             alt="طالب يستعد للصلاة"
+            initialSrc={media["hero-boy"]?.dataUrl}
+            initialAlt={media["hero-boy"]?.altText}
             className="mx-auto mt-6 h-64 w-64 animate-float lg:h-80 lg:w-80"
             imgClassName="drop-shadow-2xl"
             fallback="🧒"

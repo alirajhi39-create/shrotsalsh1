@@ -1,1 +1,0 @@
-ALTER TABLE "live_quiz_rooms" ADD COLUMN "auto_reveal" boolean DEFAULT true NOT NULL;

@@ -212,7 +212,23 @@ export default function Journey({ onUnauthorized }: { onUnauthorized?: () => voi
     (idx: number) => {
       setCurrent(idx);
       setNavOpen(false);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      // الانتقال إلى أعلى الشريحة الجديدة بعد رسمها (يشمل النافذة وكل حاويات التمرير)
+      requestAnimationFrame(() => {
+        const tops: Array<{ scroll: (o: { top: number }) => void } | null> = [
+          window as unknown as { scroll: (o: { top: number }) => void },
+          document.scrollingElement as unknown as { scroll: (o: { top: number }) => void } | null,
+          document.documentElement as unknown as { scroll: (o: { top: number }) => void } | null,
+          document.body as unknown as { scroll: (o: { top: number }) => void } | null,
+        ];
+        document.querySelectorAll<HTMLElement>("[data-scroll-root]").forEach((el) => tops.push(el));
+        for (const el of tops) {
+          try {
+            el?.scroll({ top: 0 });
+          } catch {
+            /* عنصر غير قابل للتمرير */
+          }
+        }
+      });
       saveProgress(idx, done && !completed.has(currentKey) ? currentKey : undefined);
     },
     [saveProgress, done, completed, currentKey],

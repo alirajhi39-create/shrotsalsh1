@@ -15,6 +15,20 @@
       "when": 1794282089312,
       "tag": "0001_add_media_assets",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794308972247,
+      "tag": "0002_add_live_rooms",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794318549695,
+      "tag": "0003_add_live_start_timer",
+      "breakpoints": true
     }
   ]
 }

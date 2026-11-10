@@ -12,6 +12,9 @@ type State = {
   index: number;
   total: number;
   finished: boolean;
+  started: boolean;
+  seconds: number;
+  remaining: number;
   reveal: boolean;
   question: { label: string } | null;
   zones: Zone[];
@@ -33,19 +36,26 @@ export default function StudentRoom() {
   const [confetti, setConfetti] = useState(false);
   const sounds = useSounds(true);
   const prevReveal = useRef(false);
+  const failures = useRef(0);
+  const [remaining, setRemaining] = useState(0);
 
   const poll = useCallback(async () => {
     if (!playerId || !code) return;
     try {
       const res = await fetch(`/api/room/play?code=${encodeURIComponent(code)}&playerId=${encodeURIComponent(playerId)}`, { cache: "no-store" });
-      if (res.status === 404) {
-        setState(null);
-        setError("انتهت المسابقة أو أغلقها المعلم");
+      // خطأ الشبكة أو تعذر التحميل لا يُنهي المشاركة؛ نستمر بالمحاولة
+      if (!res.ok) {
+        failures.current += 1;
+        if (failures.current >= 4) setError("تعذر الاتصال… جارٍ إعادة المحاولة");
         return;
       }
+      failures.current = 0;
       const d = (await res.json()) as State;
+      const changed = state && (d.index !== state.index || d.reveal !== state.reveal);
       setState(d);
       setError(null);
+      setRemaining(d.remaining ?? 0);
+      if (changed) window.scrollTo({ top: 0, behavior: "smooth" });
       if (d.reveal && !prevReveal.current) {
         if (d.me?.correct) {
           sounds.success();
@@ -65,6 +75,23 @@ export default function StudentRoom() {
     const t = setInterval(poll, 2000);
     return () => clearInterval(t);
   }, [joined, playerId, poll]);
+
+  // نغمة تنبيه عند وصول الوقت إلى الصفر
+  const timeUpPlayed = useRef(false);
+  useEffect(() => {
+    if (state?.started && state.seconds > 0 && remaining === 0 && !state.reveal && !timeUpPlayed.current) {
+      timeUpPlayed.current = true;
+      sounds.error();
+    }
+    if (remaining > 0) timeUpPlayed.current = false;
+  }, [remaining, state?.started, state?.seconds, state?.reveal, sounds]);
+
+  // عدّ محلي للمؤقّت بين كل مزامنة مع الخادم
+  useEffect(() => {
+    if (!state?.started || !state.seconds || state.reveal || state.finished || remaining <= 0) return;
+    const t = setTimeout(() => setRemaining((r) => Math.max(0, r - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [state?.started, state?.seconds, state?.reveal, state?.finished, state?.index, remaining]);
 
   const join = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,8 +128,10 @@ export default function StudentRoom() {
         body: JSON.stringify({ code, playerId, action: "answer", choice }),
       });
       const d = (await res.json()) as { ok?: boolean; error?: string };
-      if (!res.ok) setError(d.error ?? "تعذر إرسال الإجابة");
-      else {
+      if (!res.ok) {
+        setError(d.error ?? "تعذر إرسال الإجابة");
+        sounds.error();
+      } else {
         setError(null);
         sounds.click();
         poll();
@@ -196,11 +225,11 @@ export default function StudentRoom() {
 
       <div className="mx-auto max-w-md space-y-4">
         {error && (
-          <div className="space-y-2">
-            <div className="rounded-2xl bg-rose-50 p-3 text-center font-bold text-rose-700">{error}</div>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <div className="rounded-2xl bg-amber-50 p-3 text-center font-bold text-amber-900">{error}</div>
             <Btn
               variant="secondary"
-              className="w-full"
+              size="sm"
               onClick={() => {
                 setJoined(false);
                 setPlayerId(null);
@@ -239,16 +268,38 @@ export default function StudentRoom() {
         ) : !state.question ? (
           <div className="rounded-3xl bg-white p-8 text-center shadow">
             <div className="animate-float text-6xl">⏳</div>
-            <p className="mt-3 text-lg font-bold text-turq-800">بانتظار بدء المعلم…</p>
+            <p className="mt-3 text-lg font-bold text-turq-800">
+              {state.started ? "بانتظار السؤال التالي…" : "بانتظار بدء المعلم…"}
+            </p>
             <p className="mt-1 text-sm text-slate-500">أنت مسجّل باسم {me?.name}</p>
           </div>
         ) : (
           <>
             <div className="rounded-3xl bg-white p-5 text-center shadow-lg">
-              <p className="text-sm font-bold text-slate-500">
-                أجاب {state.answeredCount} من {state.totalPlayers}
-              </p>
-              <p className="mt-2 text-2xl font-black leading-relaxed text-turq-900">{state.question.label}</p>
+              <div className="mb-2 flex items-center justify-between text-sm font-bold">
+                <span className="text-slate-500">
+                  أجاب {state.answeredCount} من {state.totalPlayers}
+                </span>
+                {state.seconds > 0 && !state.reveal && (
+                  <span
+                    className={cx(
+                      "rounded-xl px-3 py-0.5 text-lg font-black tabular-nums",
+                      remaining <= 5 ? "animate-pulse bg-rose-100 text-rose-700" : "bg-turq-50 text-turq-800",
+                    )}
+                  >
+                    ⏱️ {remaining}
+                  </span>
+                )}
+              </div>
+              <p className="text-2xl font-black leading-relaxed text-turq-900">{state.question.label}</p>
+              {state.seconds > 0 && !state.reveal && (
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className={cx("h-full rounded-full transition-all", remaining <= 5 ? "bg-rose-500" : "bg-turq-500")}
+                    style={{ width: `${Math.max(0, (remaining / state.seconds) * 100)}%` }}
+                  />
+                </div>
+              )}
             </div>
 
             {!state.reveal ? (
@@ -264,7 +315,7 @@ export default function StudentRoom() {
                     <button
                       key={z.id}
                       type="button"
-                      disabled={busy}
+                      disabled={busy || (state.seconds > 0 && remaining === 0)}
                       onClick={() => answer(z.id)}
                       className="touch-target flex items-center gap-3 rounded-2xl border-2 border-slate-200 bg-white p-4 text-lg font-black text-slate-800 shadow transition-all active:scale-95 hover:border-turq-500 hover:bg-turq-50 disabled:opacity-50"
                     >

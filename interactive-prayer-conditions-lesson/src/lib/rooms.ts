@@ -46,6 +46,15 @@ export const ZONE_LABELS: Record<string, string> = {
   place: "مكان الصلاة",
 };
 
+export type LiveQuestion = {
+  id: string;
+  kind: "classify" | "mcq";
+  label: string;
+  correct: string;
+  options: { id: string; label: string; emoji?: string }[];
+  source: "book" | "activity" | "custom";
+};
+
 export function zonesFor(mode: RoomMode) {
   return mode === "conditions"
     ? ["islam", "tamyeez", "aql", "tahara", "najasa", "awrah"].map((id) => ({ id, label: ZONE_LABELS[id], emoji: zoneEmoji(id) }))

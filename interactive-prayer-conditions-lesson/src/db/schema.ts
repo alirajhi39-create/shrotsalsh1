@@ -361,6 +361,57 @@ export const mediaAssets = pgTable(
   ],
 );
 
+/**
+ * غرف المسابقة المباشرة: تُحفظ في قاعدة البيانات حتى تعمل عبر جميع نسخ
+ * الدوال على Vercel (لا تعتمد على ذاكرة عملية واحدة).
+ */
+export const liveRooms = pgTable(
+  "live_rooms",
+  {
+    id: serial("id").primaryKey(),
+    code: varchar("code", { length: 8 }).notNull(),
+    teacherId: integer("teacher_id")
+      .notNull()
+      .references(() => teachers.id, { onDelete: "cascade" }),
+    mode: varchar("mode", { length: 16 }).notNull(),
+    deck: jsonb("deck").$type<unknown[]>().notNull().default([]),
+    currentIndex: integer("current_index").notNull().default(0),
+    reveal: boolean("reveal").notNull().default(false),
+    finished: boolean("finished").notNull().default(false),
+    closed: boolean("closed").notNull().default(false),
+    /** بدأ المعلم المسابقة فعليًا (بعد انضمام الطلاب) */
+    started: boolean("started").notNull().default(false),
+    /** مدة السؤال بالثواني (0 = بدون مؤقّت) */
+    seconds: integer("seconds").notNull().default(0),
+    /** لحظة بدء عرض السؤال الحالي */
+    questionStartedAt: timestamp("question_started_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("live_rooms_code_uq").on(t.code), index("live_rooms_teacher_idx").on(t.teacherId)],
+);
+
+export const livePlayers = pgTable(
+  "live_players",
+  {
+    id: serial("id").primaryKey(),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => liveRooms.id, { onDelete: "cascade" }),
+    playerId: varchar("player_id", { length: 40 }).notNull(),
+    name: text("name").notNull(),
+    score: integer("score").notNull().default(0),
+    choice: varchar("choice", { length: 120 }),
+    answered: boolean("answered").notNull().default(false),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("live_players_room_player_uq").on(t.roomId, t.playerId),
+    index("live_players_room_idx").on(t.roomId),
+  ],
+);
+
 export const auditLogs = pgTable(
   "audit_logs",
   {

@@ -36,7 +36,7 @@ export default function StudentApp({
   }, []);
 
   const lesson = (
-    <div className="fixed inset-0 z-[60] overflow-y-auto overflow-x-hidden bg-[#f4fbfb]">
+    <div data-scroll-root className="fixed inset-0 z-[60] overflow-y-auto overflow-x-hidden bg-[#f4fbfb]">
       <Journey onUnauthorized={() => setStarted(false)} />
     </div>
   );

@@ -4,6 +4,9 @@ import { questions } from "@/db/schema";
 import { ensureSeeded } from "./seed";
 import { shuffledDeck, type QuizCard, type RoomMode } from "./rooms";
 import { MEDIA_BY_KEY } from "./media-catalog";
+import type { LiveQuestion } from "./rooms";
+
+export type { LiveQuestion };
 
 /**
  * بنك أسئلة المسابقة: يدمج أسئلة الكتاب (النشاطات) + أسئلة الكتاب والتقويم من قاعدة
@@ -14,14 +17,7 @@ import { MEDIA_BY_KEY } from "./media-catalog";
  *  - mcq      : اختيار من متعدد (options.choices + answer.index)
  */
 
-export type LiveQuestion = {
-  id: string;
-  kind: "classify" | "mcq";
-  label: string;               // نص البطاقة/السؤال
-  correct: string;             // معرف المنطقة الصحيحة أو نص الخيار الصحيح
-  options: { id: string; label: string; emoji?: string }[];
-  source: "book" | "activity" | "custom";
-};
+
 
 function classifyQuestions(mode: RoomMode): LiveQuestion[] {
   return shuffledDeck(mode).map((c: QuizCard) => ({
